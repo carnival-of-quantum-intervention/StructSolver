@@ -3,7 +3,6 @@
 #include <string>
 #include <forward_list>
 #include "struct.h"
-#include "D:\\MyLibrary\DefaultFunction.h"
 #include "D:\\MyLibrary\CustomizedRadixCharSet.h"
 
 //Caution:
