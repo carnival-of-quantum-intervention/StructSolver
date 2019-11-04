@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include <sstream>
+#include <string>
 #include "D:\\MyLibrary\DefaultFunction.h"
 #include "D:\\MyLibrary\CustomizedRadixCharSet.h"
 
@@ -13,6 +13,8 @@ int main(int argc, char *argv[]) noexcept {
 		return -1;
 	}
 	else {
+		cout << "Here is " << argv[0] << endl;
+		//per loop for per file
 		for (int i = 1; i < argc; ++i) {
 			cout << "Trying to open " << argv[i] << '.' << endl;
 			ifstream fin(argv[i]);
@@ -22,11 +24,22 @@ int main(int argc, char *argv[]) noexcept {
 
 
 			string words;
+			//per loop for per line
 			do {
 				if (!fin) { cerr << "Error in reading " << argv[i] << '.' << endl; break; }
-				getline<' ', '\n', '\r'>(fin, words);
+				auto c = getline<' ', '\n', '\r'>(fin, words);
+				if (c == '\n' || c == '\r')break;
 				if (words.empty())continue;
-				if (words == "lever") {
+				if (words == "point") {
+
+				}
+				else if (words == "body") {
+
+				}
+				else if (words=="pole") {
+
+				}
+				else if (words == "lever") {
 
 				}
 				else if (words == "pin" || words == "hinge") {
@@ -36,6 +49,9 @@ int main(int argc, char *argv[]) noexcept {
 
 				}
 				else cerr << "Unknown input \"" << words << "\"." << endl;
+				string res;
+				std::getline(fin, res);
+				if (!res.empty()) cerr << "Unused input \"" << res << "\"." << endl;
 			} while (words.clear(), !fin.eof());
 			cout << "Closing " << argv[i] << '.' << endl;
 			fin.close();
