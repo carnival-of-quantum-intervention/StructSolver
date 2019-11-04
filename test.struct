@@ -1,0 +1,6 @@
+point a 
+point b
+body c
+pole a base x = t + 1, y = t * 2, 0 < t < 1
+pole a b x = t + 1, y = t ^ 2, 0 < t < 1
+pin c base 2 3
