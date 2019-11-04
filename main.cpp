@@ -27,11 +27,12 @@ int main(int argc, char *argv[]) noexcept {
 			//per loop for per line
 			do {
 				if (!fin) { cerr << "Error in reading " << argv[i] << '.' << endl; break; }
+				ignore_if<' '>(fin);
 				auto c = getline<' ', '\n', '\r'>(fin, words);
+				ignore_if<' '>(fin);
 				if (c == '\n' || c == '\r')break;
-				if (words.empty())continue;
+				if (words.empty()) continue;
 				if (words == "point") {
-
 				}
 				else if (words == "body") {
 
