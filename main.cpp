@@ -19,7 +19,6 @@ int main(int argc, char *argv[]) noexcept {
 		return -1;
 	}
 	else {
-		cout << "Here is " << argv[0] << endl;
 		//per loop for per file
 		for (int i = 1; i < argc; ++i) {
 			cout << "Trying to open " << argv[i] << '.' << endl;
