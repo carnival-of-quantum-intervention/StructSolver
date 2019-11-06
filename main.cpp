@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 #include <forward_list>
+#include <iomanip>
 #include "struct.h"
 #include "D:\\MyLibrary\CustomizedRadixCharSet.h"
 
@@ -19,6 +20,7 @@ int main(int argc, char *argv[]) noexcept {
 		return -1;
 	}
 	else {
+		cout << setprecision(15);
 		//per loop for per file
 		for (int i = 1; i < argc; ++i) {
 			cout << "Trying to open " << argv[i] << '.' << endl;
@@ -107,6 +109,9 @@ int main(int argc, char *argv[]) noexcept {
 				if (!res.empty()) cerr << "Unused input \"" << res << "\"." << endl;
 
 			} while (words.clear(), !fin.eof());
+
+			t.solve();
+
 			cout << "Closing " << argv[i] << '.' << endl;
 			fin.close();
 			cout << "Closed." << endl << endl << endl;

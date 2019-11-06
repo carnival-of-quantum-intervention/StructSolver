@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <map>
 #include "D:\\MyLibrary\DefaultFunction.h"
-#include "D:\\MyLibrary\Matrix.h"
+#include "D:\\MyLibrary\NormalMatrix.h"
 
 class body {
 public:
@@ -45,8 +45,10 @@ class table {
 	std::map<key, body> bodies;
 public:
 	const body base = body("base", nullptr, nullptr);
+	__stdcall table() = default;
+	__stdcall table(const table &that)noexcept = default;
 
-	void emplace_body(const char*name, const char* x, const char* y)noexcept {
+	void emplace_body(const char *name, const char *x, const char *y)noexcept {
 		try {
 			auto &&fun_x = funEngine::produce(x), &&fun_y = funEngine::produce(y);
 			bodies.emplace(countBody, body(name, std::move(fun_x), std::move(fun_y)));
@@ -68,20 +70,46 @@ public:
 		constraints.emplace_front(
 			(a == "base") ? key(0) : (*std::find_if(bodies.cbegin(), bodies.cend(), [&a](auto &_body) { return a == _body.second; })).first,
 			(b == "base") ? key(0) : (*std::find_if(bodies.cbegin(), bodies.cend(), [&b](auto &_body) { return b == _body.second; })).first,
-			std::atol(x.c_str()), std::atol(y.c_str()), 
+			std::atol(x.c_str()), std::atol(y.c_str()),
 			angle, force_or_moment
 		);
 		++countConstr;
 	}
-
+	void solve()noexcept {
+		Math::NormalMatrix<double> constr(countBody * 3, countConstr + 1);
+		constr.fill([this](size_t i, size_t j) ->double {
+			auto iter = constraints.cbegin();
+			if (j >= countConstr)return 0;
+			for (size_t t = 0; t < j; t++) {
+				++iter;
+			}
+			bool is_a = true;
+			if ((i / 3) == (*iter).a || (is_a = false, (i / 3) == (*iter).b)) {
+				if ((*iter).force_or_moment == true) {
+					if (i % 3 == 0) {
+						return cos((*iter).direction * PI / 180) * (is_a ? 1 : -1);
+					}
+					if (i % 3 == 1) {
+						return sin((*iter).direction * PI / 180) * (is_a ? 1 : -1);
+					}
+					if (i % 3 == 2) {
+						return ((*iter).y * sin((*iter).direction * PI / 180) - (*iter).x * cos((*iter).direction * PI / 180)) * (is_a ? 1 : -1);
+					}
+					assert(false);
+					return NAN;
+				}
+				else {
+					if (i % 3 == 2) {
+						return (is_a ? 1 : -1);
+					}
+					else return 0;
+				}
+			}
+			else return 0;
+			});
+		std::cout << constr << std::endl;
+		constr.to_diagon();
+		std::cout << constr << std::endl;
+	}
 private:
-};
-
-class Solver {
-public:
-	Solver(size_t m, size_t n) :mat(m, n) { }
-	~Solver() { }
-	
-private:
-	Math::NormalMatrix<size_t> mat;
 };
