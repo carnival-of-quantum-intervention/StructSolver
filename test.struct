@@ -1,5 +1,5 @@
 pole a x = t + 1, y = t * 2, (0, 1)
 pole b x = t + 1, y = t ^ 2, (0, 1)
-lever b base 2 0 60
+lever b base 2 0 53
 pin a b 1 0
 rigid base a 0 0
