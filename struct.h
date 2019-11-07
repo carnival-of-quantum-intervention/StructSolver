@@ -70,9 +70,27 @@ public:
 		ang angle, bool force_or_moment
 	)noexcept {
 		try {
+			key _a = key(-1), _b = key(-1);
+			if (a != "base") {
+				auto ia = std::find_if(bodies.cbegin(), bodies.cend(), [&a](auto &_body) { return a == _body.second; });
+				if (ia == bodies.cend()) {
+					ia = bodies.emplace(countBody, body(a, nullptr, nullptr)).first;
+					++countBody;
+					std::cerr << "A body named " << a << " has been emplaced autimatically. It has no shape asigned." << std::endl;
+				}
+				_a = (*ia).first;
+			}
+			if (b != "base") {
+				auto ib = std::find_if(bodies.cbegin(), bodies.cend(), [&b](auto &_body) { return b == _body.second; });
+				if (ib == bodies.cend()) {
+					ib = bodies.emplace(countBody, body(b, nullptr, nullptr)).first;
+					++countBody;
+					std::cerr << "A body named " << b << " has been emplaced autimatically. It has no shape asigned." << std::endl;
+				}
+				_b = (*ib).first;
+			}
 			constraints.emplace_front(
-				(a == "base") ? key(-1) : (*std::find_if(bodies.cbegin(), bodies.cend(), [&a](auto &_body) { return a == _body.second; })).first,
-				(b == "base") ? key(-1) : (*std::find_if(bodies.cbegin(), bodies.cend(), [&b](auto &_body) { return b == _body.second; })).first,
+				_a, _b,
 				x.c_str(), y.c_str(),
 				angle, force_or_moment
 			);
@@ -138,13 +156,13 @@ public:
 			auto rank = constr.to_diagon();
 			std::cout << "After solving:" << std::endl << constr << std::endl;
 			if (rank < countBody * 3) {
-				std::cout << "Variable structure!It has " << countBody * 3 - rank << " free degree." << std::endl;
+				std::cout << "Variable structure! It has " << countBody * 3 - rank << " free degree." << std::endl;
 			}
 			else if (countBody * 3 == countConstr) {
 				std::cout << "Statically determinate structure!" << std::endl;
 			}
 			else {
-				std::cout << "Statically indeterminate structure!Its degree of statical indeterminacy is " << countConstr - countBody * 3 << '.' << std::endl;
+				std::cout << "Statically indeterminate structure! Its degree of statical indeterminacy is " << countConstr - countBody * 3 << '.' << std::endl;
 			}
 
 		}
