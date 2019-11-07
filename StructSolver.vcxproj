@@ -133,7 +133,11 @@
     <ClInclude Include="struct.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="test.struct" />
+    <None Include="test1.struct" />
+    <None Include="test2.struct">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</DeploymentContent>
+    </None>
+    <None Include="test3.struct" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

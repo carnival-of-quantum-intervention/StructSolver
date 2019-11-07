@@ -1,0 +1,27 @@
+pole a x = t + 1, y = t * 2, (0, 1)
+pole b x = t + 1, y = t ^ 2, (0, 1)
+pole c x = t + 1, y = t * 2, (0, 1)
+pole d x = t + 1, y = t ^ 2, (0, 1)
+pole e x = t + 1, y = t ^ 2, (0, 1)
+pole f x = t + 1, y = t ^ 2, (0, 1)
+pole g x = t + 1, y = t ^ 2, (0, 1)
+pole h x = t + 1, y = t ^ 2, (0, 1)
+pole i x = t + 1, y = t ^ 2, (0, 1)
+pole j x = t + 1, y = t ^ 2, (0, 1)
+pole k x = t + 1, y = t ^ 2, (0, 1)
+
+pin a base 0 0
+rigid a b 0 2
+pin b c 1 2
+rigid c d 2 2
+lever d base 2 0 90
+rigid c e 2 2
+pin e f 3 2
+
+pin f g 5 2
+rigid g h 6 2
+lever h base 6 0 90
+rigid g i 6 2
+pin i j 7 2
+rigid j k 8 2
+pin k base 8 0

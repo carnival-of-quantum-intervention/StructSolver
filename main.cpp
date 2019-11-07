@@ -35,7 +35,10 @@ int main(int argc, char *argv[]) noexcept {
 				if (!fin) { cerr << "Error in reading " << argv[i] << '.' << endl; break; }
 				ignore_if<' '>(fin);
 				auto c = getline<' ', '\n', '\r'>(fin, words);
-				if (c == '\n' || c == '\r')break;
+				if (c == '\n' || c == '\r') {
+					ignore_if<'\n', '\r'>(fin);
+					continue;
+				}
 
 				joint type = joint::unknown;
 				if (words == "pole") {
