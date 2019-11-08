@@ -158,9 +158,9 @@ public:
 					throw std::exception("Failed in filling the matrix.");
 				}
 				});
-			std::cout << "Before solving:" << std::endl <<std::setw(3) << constr << std::endl;
+			std::cout << "Before solving:" << std::endl <<std::setw(2) << constr << std::endl;
 			auto rank = constr.to_diagon();
-			std::cout << "After solving:" << std::endl << std::setw(3) << constr << std::endl;
+			std::cout << "After solving:" << std::endl << std::setw(2) << constr << std::endl;
 			if (rank < countBody * 3) {
 				std::cout << "Variable structure! It has " << countBody * 3 - rank << " free degree." << std::endl;
 			}
