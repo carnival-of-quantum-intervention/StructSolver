@@ -27,96 +27,10 @@ int main(int argc, char *argv[]) noexcept {
 			ifstream fin(argv[i]);
 			(void)fin.peek();
 			if (!fin)return cerr << "Error in opening " << argv[i] << '.' << endl, -1;
-			table t;
 
-			string words;
-			//per loop for per line
-			do {
-				if (!fin) { cerr << "Error in reading " << argv[i] << '.' << endl; break; }
-				ignore_if<' '>(fin);
-				auto c = getline<' ', '\n', '\r'>(fin, words);
-				if (c == '\n' || c == '\r') {
-					ignore_if<'\n', '\r'>(fin);
-					continue;
-				}
-
-				if (words[0] != '/') {
-					joint type = joint::unknown;
-					if (words == "pole") {
-						string name, x, y, begin, end;
-						ignore_if<' '>(fin);
-						getline<' ', '\n', '\r'>(fin, name);
-
-						ignore_if_not<'x'>(fin);
-						getline<'y', '\n', '\r'>(fin, x);
-
-						ignore_if_not<'y'>(fin);
-						getline<'('>(fin, y);
-
-						ignore_if<'(', '=', ' ', ','>(fin);
-						getline<',', ' ', '\n', '\r'>(fin, begin);
-						getline<'\n', '\r'>(fin, end);
-
-
-						t.new_body(name.c_str(), x.c_str(), y.c_str());
-					}
-					else if (
-						(type = joint::lever, words == "lever")
-						||
-						(type = joint::pin, words == "pin" || words == "hinge")
-						||
-						(type = joint::rigid, words == "rigid")
-						) {
-						string a, b, x, y;
-						ignore_if<' '>(fin);
-						getline<' ', '\n', '\r'>(fin, a);
-						ignore_if<' '>(fin);
-						getline<' ', '\n', '\r'>(fin, b);
-						ignore_if<' '>(fin);
-						getline<' ', '\n', '\r'>(fin, x);
-						ignore_if<' '>(fin);
-						getline<' ', '\n', '\r'>(fin, y);
-						switch (type) {
-						case joint::lever:
-						{
-							string angle;
-							ignore_if<' '>(fin);
-							getline<' ', '\n', '\r'>(fin, angle);
-							t.new_constraint(a, b, x, y, atol(angle.c_str()), true);
-						}
-						break;
-						case joint::pin:
-						{
-							t.new_constraint(a, b, x, y, 0, true);
-							t.new_constraint(a, b, x, y, 90, true);
-						}
-						break;
-						case joint::rigid:
-						{
-							t.new_constraint(a, b, x, y, 0, true);
-							t.new_constraint(a, b, x, y, 90, true);
-							t.new_constraint(a, b, x, y, 90, false);
-						}
-						break;
-						case joint::unknown:
-						default:
-							cerr << "Unknown joint type" << endl;
-							break;
-						}
-					}
-					else cerr << "Unknown input \"" << words << "\"." << endl;
-				}
-
-
-				string res;
-				ignore_if<' '>(fin);
-				std::getline(fin, res);
-				if (!res.empty()) cerr << "Unused input \"" << res << "\"." << endl;
-
-			} while (words.clear(), !fin.eof());
-
-			t.solve();
-
+			if (!processInput(fin)) {
+				cerr << "Error in processing " << argv[i] << '.' << endl;
+			}
 			cout << "Closing " << argv[i] << '.' << endl;
 			fin.close();
 			cout << "Closed." << endl << endl << endl;

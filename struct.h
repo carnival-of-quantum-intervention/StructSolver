@@ -12,9 +12,11 @@ class body {
 public:
 	const std::string name;
 	ptrHolder x, y;
-	body(const std::string &that, nullptr_t&&,nullptr_t&&)noexcept :name(that), x(nullptr), y(nullptr) { }
-	body(const std::string &that, ptrHolder &&x, ptrHolder &&y)noexcept
-		:name(that), x(std::move(x)), y(std::move(y)) { }
+	constant begin, end;
+	body(const std::string &that, nullptr_t &&, nullptr_t &&, const char *begin, const char *end)noexcept
+		:name(that), x(nullptr), y(nullptr), begin(begin), end(end) { }
+	body(const std::string &that, ptrHolder &&x, ptrHolder &&y, const char *begin, const char *end)noexcept
+		:name(that), x(std::move(x)), y(std::move(y)), begin(begin), end(end) { }
 	bool operator==(const std::string &str)const noexcept { return this->name == str; }
 };
 
@@ -41,7 +43,7 @@ class table {
 	key countConstr = 0;
 	//刚体表 rigid bodies map
 	//基础（base）是具有不同性质的刚体 basement is a rigid body, though having different behaviours
-	std::map<key, body> bodies;
+	std::vector<body> bodies;
 	//约束表 constraints map
 	std::vector<constraint> constraints;
 public:
@@ -50,23 +52,26 @@ public:
 	__stdcall table(const table &that) = default;
 
 
-	const auto emplace_body(const char *name, ptrHolder &&fun_x, ptrHolder &&fun_y) {
-		const auto &res = bodies.emplace(countBody, body(name, std::move(fun_x), std::move(fun_y)));
-		++countBody;
-		return res;
+	auto emplace_body(const char *name, ptrHolder &&fun_x, ptrHolder &&fun_y, const char *begin, const char *end) {
+		bodies.emplace_back(name, std::move(fun_x), std::move(fun_y), begin, end);
+		return countBody++;
 	}
-	const auto emplace_body(const char *name, nullptr_t, nullptr_t) {
-		const auto &res = bodies.emplace(countBody, body(name, nullptr, nullptr));
-		++countBody;
-		return res;
+	auto emplace_body(const char *name, nullptr_t, nullptr_t, const char *begin, const char *end) {
+		bodies.emplace_back(name, nullptr, nullptr, begin, end);
+		return countBody++;
 	}
 
-	void new_body(const char *name, const char *x, const char *y)noexcept {
+	void new_body(const char *name, const char *x, const char *y, const char* begin, const char* end)noexcept {
 		try {
-			auto &&fun_x = funEngine::produce(x), &&fun_y = funEngine::produce(y);
-			if (!fun_x) std::cerr << "Unsupported form of equation \"" << x << "\"." << std::endl;
-			if (!fun_y) std::cerr << "Unsupported form of equation \"" << y << "\"." << std::endl;
-			emplace_body(name, std::move(fun_x), std::move(fun_y));
+			ptrHolder &&fun_x = funEngine::produce(x), &&fun_y = funEngine::produce(y);
+			if (!*x || !*y) {
+				std::cout << "Shape of body \"" << name << "\" is not assigned." << std::endl;
+			}
+			else {
+				if (!fun_x && *x) std::cerr << "Unsupported form of equation \"" << x << "\"." << std::endl;
+				if (!fun_y && *y) std::cerr << "Unsupported form of equation \"" << y << "\"." << std::endl;
+			}
+			emplace_body(name, std::move(fun_x), std::move(fun_y), begin, end);
 		}
 		catch (const std::exception & e) {
 			std::cerr << "Exception:\"" << e.what() << "\"" << std::endl;
@@ -80,20 +85,22 @@ public:
 		try {
 			key _a = key(-1), _b = key(-1);
 			if (a != "base") {
-				auto ia = std::find_if(bodies.cbegin(), bodies.cend(), [&a](auto &_body) { return a == _body.second; });
+				auto ia = std::find_if(bodies.cbegin(), bodies.cend(), [&a](auto &_body) { return a == _body; });
 				if (ia == bodies.cend()) {
-					ia = emplace_body(a.c_str(), nullptr, nullptr).first;
+					constexpr char tmp = '1';
+					_a = emplace_body(a.c_str(), nullptr, nullptr, &tmp, &tmp);
 					std::cerr << "A body named " << a << " has been emplaced autimatically. It has no shape asigned." << std::endl;
 				}
-				_a = (*ia).first;
+				else _a = ia - bodies.cbegin();
 			}
 			if (b != "base") {
-				auto ib = std::find_if(bodies.cbegin(), bodies.cend(), [&b](auto &_body) { return b == _body.second; });
+				auto ib = std::find_if(bodies.cbegin(), bodies.cend(), [&b](auto &_body) { return b == _body; });
 				if (ib == bodies.cend()) {
-					ib = emplace_body(b.c_str(), nullptr, nullptr).first;
+					constexpr char tmp = '1';
+					_b = emplace_body(b.c_str(), nullptr, nullptr, &tmp, &tmp);
 					std::cerr << "A body named " << b << " has been emplaced autimatically. It has no shape asigned." << std::endl;
 				}
-				_b = (*ib).first;
+				else _b = ib - bodies.cbegin();
 			}
 			constraints.emplace_back(
 				_a, _b,
@@ -158,9 +165,9 @@ public:
 					throw std::exception("Failed in filling the matrix.");
 				}
 				});
-			std::cout << "Before solving:" << std::endl <<std::setw(2) << constr << std::endl;
+			std::cout << "Before solving:" << std::endl <<std::setw(5) << constr << std::endl;
 			auto rank = constr.to_diagon();
-			std::cout << "After solving:" << std::endl << std::setw(2) << constr << std::endl;
+			std::cout << "After solving:" << std::endl << std::setw(5) << constr << std::endl;
 			if (rank < countBody * 3) {
 				std::cout << "Variable structure! It has " << countBody * 3 - rank << " free degree." << std::endl;
 			}
@@ -180,3 +187,99 @@ public:
 	}
 private:
 };
+
+bool processInput(std::istream& stin)noexcept {
+	using namespace LargeInteger;
+	using namespace std;
+
+	table t;
+
+	string words;
+	//per loop for per line
+	do {
+		if (!stin)return false;
+		ignore_if<' '>(stin);
+		auto c = getline<' ', '\n', '\r'>(stin, words);
+		if (c == '\n' || c == '\r') {
+			ignore_if<'\n', '\r'>(stin);
+			continue;
+		}
+
+		if (words[0] != '/') {
+			joint type = joint::unknown;
+			if (words == "pole") {
+				string name, x, y, begin, end;
+				ignore_if<' '>(stin);
+				getline<' ', '\n', '\r'>(stin, name);
+
+				ignore_if_not<'x', '\n', '\r'>(stin);
+				getline<'y', '\n', '\r'>(stin, x);
+
+				ignore_if_not<'y', '\n', '\r'>(stin);
+				getline<'(', '\n', '\r'>(stin, y);
+
+				ignore_if<'(', '=', ' ', ','>(stin);
+				getline<',', ' ', '\n', '\r'>(stin, begin);
+				getline<'\n', '\r'>(stin, end);
+
+
+				t.new_body(name.c_str(), x.c_str(), y.c_str(), begin.c_str(), end.c_str());
+			}
+			else if (
+				(type = joint::lever, words == "lever")
+				||
+				(type = joint::pin, words == "pin" || words == "hinge")
+				||
+				(type = joint::rigid, words == "rigid")
+				) {
+				string a, b, x, y;
+				ignore_if<' '>(stin);
+				getline<' ', '\n', '\r'>(stin, a);
+				ignore_if<' '>(stin);
+				getline<' ', '\n', '\r'>(stin, b);
+				ignore_if<' '>(stin);
+				getline<' ', '\n', '\r'>(stin, x);
+				ignore_if<' '>(stin);
+				getline<' ', '\n', '\r'>(stin, y);
+				switch (type) {
+				case joint::lever:
+				{
+					string angle;
+					ignore_if<' '>(stin);
+					getline<' ', '\n', '\r'>(stin, angle);
+					t.new_constraint(a, b, x, y, atol(angle.c_str()), true);
+				}
+				break;
+				case joint::pin:
+				{
+					t.new_constraint(a, b, x, y, 0, true);
+					t.new_constraint(a, b, x, y, 90, true);
+				}
+				break;
+				case joint::rigid:
+				{
+					t.new_constraint(a, b, x, y, 0, true);
+					t.new_constraint(a, b, x, y, 90, true);
+					t.new_constraint(a, b, x, y, 90, false);
+				}
+				break;
+				case joint::unknown:
+				default:
+					cerr << "Unknown joint type" << endl;
+					break;
+				}
+			}
+			else cerr << "Unknown input \"" << words << "\"." << endl;
+
+
+			string res;
+			ignore_if<' '>(stin);
+			std::getline(stin, res);
+			if (!res.empty()) cerr << "Unused input \"" << res << "\"." << endl;
+
+		}
+	} while (words.clear(), !stin.eof());
+
+	t.solve();
+	return true;
+}
