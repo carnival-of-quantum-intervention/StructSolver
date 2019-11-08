@@ -28,5 +28,6 @@
     <None Include="test1.struct" />
     <None Include="test2.struct" />
     <None Include="test3.struct" />
+    <None Include="test4.struct" />
   </ItemGroup>
 </Project>

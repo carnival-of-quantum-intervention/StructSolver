@@ -40,70 +40,72 @@ int main(int argc, char *argv[]) noexcept {
 					continue;
 				}
 
-				joint type = joint::unknown;
-				if (words == "pole") {
-					string name, x, y, begin, end;
-					ignore_if<' '>(fin);
-					getline<' ', '\n', '\r'>(fin, name);
-
-					ignore_if_not<'x'>(fin);
-					getline<'y', '\n', '\r'>(fin, x);
-
-					ignore_if_not<'y'>(fin);
-					getline<'('>(fin, y);
-
-					ignore_if<'(', '=', ' ', ','>(fin);
-					getline<',', ' ', '\n', '\r'>(fin, begin);
-					getline<'\n', '\r'>(fin, end);
-
-
-					t.emplace_body(name.c_str(), x.c_str(), y.c_str());
-				}
-				else if (
-					(type = joint::lever, words == "lever")
-					||
-					(type = joint::pin, words == "pin" || words == "hinge")
-					||
-					(type = joint::rigid, words == "rigid")
-					) {
-					string a, b, x, y;
-					ignore_if<' '>(fin);
-					getline<' ', '\n', '\r'>(fin, a);
-					ignore_if<' '>(fin);
-					getline<' ', '\n', '\r'>(fin, b);
-					ignore_if<' '>(fin);
-					getline<' ', '\n', '\r'>(fin, x);
-					ignore_if<' '>(fin);
-					getline<' ', '\n', '\r'>(fin, y);
-					switch (type) {
-					case joint::lever:
-					{
-						string angle;
+				if (words[0] != '/') {
+					joint type = joint::unknown;
+					if (words == "pole") {
+						string name, x, y, begin, end;
 						ignore_if<' '>(fin);
-						getline<' ', '\n', '\r'>(fin, angle);
-						t.emplace_constraint(a, b, x, y, atol(angle.c_str()), true);
+						getline<' ', '\n', '\r'>(fin, name);
+
+						ignore_if_not<'x'>(fin);
+						getline<'y', '\n', '\r'>(fin, x);
+
+						ignore_if_not<'y'>(fin);
+						getline<'('>(fin, y);
+
+						ignore_if<'(', '=', ' ', ','>(fin);
+						getline<',', ' ', '\n', '\r'>(fin, begin);
+						getline<'\n', '\r'>(fin, end);
+
+
+						t.new_body(name.c_str(), x.c_str(), y.c_str());
 					}
-					break;
-					case joint::pin:
-					{
-						t.emplace_constraint(a, b, x, y, 0, true);
-						t.emplace_constraint(a, b, x, y, 90, true);
-					}
-					break;
-					case joint::rigid:
-					{
-						t.emplace_constraint(a, b, x, y, 0, true);
-						t.emplace_constraint(a, b, x, y, 90, true);
-						t.emplace_constraint(a, b, x, y, 90, false);
-					}
-					break;
-					case joint::unknown:
-					default:
-						cerr << "Unknown joint type" << endl;
+					else if (
+						(type = joint::lever, words == "lever")
+						||
+						(type = joint::pin, words == "pin" || words == "hinge")
+						||
+						(type = joint::rigid, words == "rigid")
+						) {
+						string a, b, x, y;
+						ignore_if<' '>(fin);
+						getline<' ', '\n', '\r'>(fin, a);
+						ignore_if<' '>(fin);
+						getline<' ', '\n', '\r'>(fin, b);
+						ignore_if<' '>(fin);
+						getline<' ', '\n', '\r'>(fin, x);
+						ignore_if<' '>(fin);
+						getline<' ', '\n', '\r'>(fin, y);
+						switch (type) {
+						case joint::lever:
+						{
+							string angle;
+							ignore_if<' '>(fin);
+							getline<' ', '\n', '\r'>(fin, angle);
+							t.new_constraint(a, b, x, y, atol(angle.c_str()), true);
+						}
 						break;
+						case joint::pin:
+						{
+							t.new_constraint(a, b, x, y, 0, true);
+							t.new_constraint(a, b, x, y, 90, true);
+						}
+						break;
+						case joint::rigid:
+						{
+							t.new_constraint(a, b, x, y, 0, true);
+							t.new_constraint(a, b, x, y, 90, true);
+							t.new_constraint(a, b, x, y, 90, false);
+						}
+						break;
+						case joint::unknown:
+						default:
+							cerr << "Unknown joint type" << endl;
+							break;
+						}
 					}
+					else cerr << "Unknown input \"" << words << "\"." << endl;
 				}
-				else cerr << "Unknown input \"" << words << "\"." << endl;
 
 
 				string res;

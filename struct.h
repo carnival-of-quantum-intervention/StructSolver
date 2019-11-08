@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include <forward_list>
+#include <vector>
 #include <algorithm>
 #include <map>
 #include "D:\\MyLibrary\DefaultFunction.h"
@@ -12,10 +12,9 @@ class body {
 public:
 	const std::string name;
 	ptrHolder x, y;
-	body(const std::string &that, function *x, function *y)noexcept :name(that), x(x), y(y) { }
+	body(const std::string &that, nullptr_t&&,nullptr_t&&)noexcept :name(that), x(nullptr), y(nullptr) { }
 	body(const std::string &that, ptrHolder &&x, ptrHolder &&y)noexcept
 		:name(that), x(std::move(x)), y(std::move(y)) { }
-	body(const char *that, function *x, function *y)noexcept :name(that), x(x), y(y) { }
 	bool operator==(const std::string &str)const noexcept { return this->name == str; }
 };
 
@@ -44,27 +43,36 @@ class table {
 	//基础（base）是具有不同性质的刚体 basement is a rigid body, though having different behaviours
 	std::map<key, body> bodies;
 	//约束表 constraints map
-	std::forward_list<constraint> constraints;
+	std::vector<constraint> constraints;
 public:
 	//const body base = body("base", nullptr, nullptr);
 	__stdcall table() = default;
 	__stdcall table(const table &that) = default;
 
-	void emplace_body(const char *name, const char *x, const char *y)noexcept {
+
+	const auto emplace_body(const char *name, ptrHolder &&fun_x, ptrHolder &&fun_y) {
+		const auto &res = bodies.emplace(countBody, body(name, std::move(fun_x), std::move(fun_y)));
+		++countBody;
+		return res;
+	}
+	const auto emplace_body(const char *name, nullptr_t, nullptr_t) {
+		const auto &res = bodies.emplace(countBody, body(name, nullptr, nullptr));
+		++countBody;
+		return res;
+	}
+
+	void new_body(const char *name, const char *x, const char *y)noexcept {
 		try {
 			auto &&fun_x = funEngine::produce(x), &&fun_y = funEngine::produce(y);
-			bodies.emplace(countBody, body(name, std::move(fun_x), std::move(fun_y)));
+			if (!fun_x) std::cerr << "Unsupported form of equation \"" << x << "\"." << std::endl;
+			if (!fun_y) std::cerr << "Unsupported form of equation \"" << y << "\"." << std::endl;
+			emplace_body(name, std::move(fun_x), std::move(fun_y));
 		}
 		catch (const std::exception & e) {
-			std::cerr
-				<< "Exception:\"" << e.what() << "\"" << std::endl
-				<< "It may be caused by unsupported form of equation \"" << x
-				<< "\" and \"" << y << "\"."
-				<< std::endl;
+			std::cerr << "Exception:\"" << e.what() << "\"" << std::endl;
 		}
-		++countBody;
 	}
-	void emplace_constraint(
+	void new_constraint(
 		const std::string &a, const std::string &b,
 		const std::string &x, const std::string &y,
 		ang angle, bool force_or_moment
@@ -74,8 +82,7 @@ public:
 			if (a != "base") {
 				auto ia = std::find_if(bodies.cbegin(), bodies.cend(), [&a](auto &_body) { return a == _body.second; });
 				if (ia == bodies.cend()) {
-					ia = bodies.emplace(countBody, body(a, nullptr, nullptr)).first;
-					++countBody;
+					ia = emplace_body(a.c_str(), nullptr, nullptr).first;
 					std::cerr << "A body named " << a << " has been emplaced autimatically. It has no shape asigned." << std::endl;
 				}
 				_a = (*ia).first;
@@ -83,13 +90,12 @@ public:
 			if (b != "base") {
 				auto ib = std::find_if(bodies.cbegin(), bodies.cend(), [&b](auto &_body) { return b == _body.second; });
 				if (ib == bodies.cend()) {
-					ib = bodies.emplace(countBody, body(b, nullptr, nullptr)).first;
-					++countBody;
+					ib = emplace_body(b.c_str(), nullptr, nullptr).first;
 					std::cerr << "A body named " << b << " has been emplaced autimatically. It has no shape asigned." << std::endl;
 				}
 				_b = (*ib).first;
 			}
-			constraints.emplace_front(
+			constraints.emplace_back(
 				_a, _b,
 				x.c_str(), y.c_str(),
 				angle, force_or_moment
@@ -152,9 +158,9 @@ public:
 					throw std::exception("Failed in filling the matrix.");
 				}
 				});
-			std::cout << "Before solving:" << std::endl << constr << std::endl;
+			std::cout << "Before solving:" << std::endl <<std::setw(3) << constr << std::endl;
 			auto rank = constr.to_diagon();
-			std::cout << "After solving:" << std::endl << constr << std::endl;
+			std::cout << "After solving:" << std::endl << std::setw(3) << constr << std::endl;
 			if (rank < countBody * 3) {
 				std::cout << "Variable structure! It has " << countBody * 3 - rank << " free degree." << std::endl;
 			}
@@ -164,7 +170,7 @@ public:
 			else {
 				std::cout << "Statically indeterminate structure! Its degree of statical indeterminacy is " << countConstr - countBody * 3 << '.' << std::endl;
 			}
-
+			
 		}
 		catch (const std::exception & e) {
 			std::cerr

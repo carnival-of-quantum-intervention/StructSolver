@@ -1,0 +1,35 @@
+/p.24 2-5(g)
+
+lever a base 0 3
+pin a b 0 3
+pin a c 0 3
+
+pin a d 0 1
+lever a base 0 1 90
+
+pin b d 2 1
+pin b e 2 1
+pin b n 2 1
+
+pin c e 2 3
+pin c f 2 3
+pin c h 2 3
+
+pin f g 3 4
+
+pin g h 4 3
+pin g i 4 3
+pin g j 4 3
+
+pin n base 3 0
+pin o base 3 0
+
+pin o j 4 1
+pin o k 4 1
+pin o m 4 1
+
+pin i k 6 3
+pin i l 6 3
+
+pin l m 6 1
+lever l base 90
