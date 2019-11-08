@@ -97,8 +97,8 @@ public:
 				auto ib = std::find_if(bodies.cbegin(), bodies.cend(), [&b](auto &_body) { return b == _body; });
 				if (ib == bodies.cend()) {
 					constexpr char tmp = '1';
-					_b = emplace_body(b.c_str(), nullptr, nullptr, &tmp, &tmp);
-					std::cerr << "A body named " << b << " has been emplaced autimatically. It has no shape asigned." << std::endl;
+					_b = emplace_body(b.c_str(), &tmp, &tmp, nullptr, nullptr, &tmp, &tmp);
+					std::cerr << "A body named " << b << " has been emplaced autimatically. Its shape is not asigned." << std::endl;
 				}
 				else _b = ib - bodies.cbegin();
 			}
