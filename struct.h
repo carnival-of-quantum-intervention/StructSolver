@@ -13,20 +13,33 @@ public:
 	const std::string name;
 	ptrHolder x, y;
 	constant begin, end;
-	body(const std::string &that, nullptr_t &&, nullptr_t &&, const char *begin, const char *end)noexcept
-		:name(that), x(nullptr), y(nullptr), begin(begin), end(end) { }
-	body(const std::string &that, ptrHolder &&x, ptrHolder &&y, const char *begin, const char *end)noexcept
-		:name(that), x(std::move(x)), y(std::move(y)), begin(begin), end(end) { }
+	body(const std::string &name, nullptr_t &&, nullptr_t &&, const char *begin, const char *end)noexcept
+		:name(name), x(nullptr), y(nullptr), begin(begin), end(end) { }
+	body(const std::string &name, ptrHolder &&x, ptrHolder &&y, const char *begin, const char *end)noexcept
+		:name(name), x(std::move(x)), y(std::move(y)), begin(begin), end(end) { }
 	bool operator==(const std::string &str)const noexcept { return this->name == str; }
-};
-
-enum class joint {
-	unknown = -1, lever, pin, rigid
 };
 
 using ang = size_t;
 using co = constant;
 using key = size_t;
+
+class external {
+public:
+	constant t;
+	constant fx, fy;
+	external(const char *fx, const char *fy, const char *t) :fx(fx), fy(fy), t(t) { }
+	external(external &&that)noexcept :fx(std::move(that.fx)), fy(std::move(that.fy)), t(std::move(that.t)) { }
+	~external() { }
+
+private:
+
+};
+
+
+enum class joint {
+	unknown = -1, lever, pin, rigid
+};
 
 class constraint {
 public:
@@ -46,13 +59,15 @@ class table {
 	std::vector<body> bodies;
 	//约束表 constraints map
 	std::vector<constraint> constraints;
+	//外力表
+	std::multimap<key, external> externals;
 public:
 	//const body base = body("base", nullptr, nullptr);
 	__stdcall table() = default;
 	__stdcall table(const table &that) = default;
 
 
-	auto emplace_body(const char *name, ptrHolder &&fun_x, ptrHolder &&fun_y, const char *begin, const char *end) {
+	auto emplace_body(const char *name,  ptrHolder &&fun_x, ptrHolder &&fun_y, const char *begin, const char *end) {
 		bodies.emplace_back(name, std::move(fun_x), std::move(fun_y), begin, end);
 		return countBody++;
 	}
@@ -61,21 +76,19 @@ public:
 		return countBody++;
 	}
 
-	void new_body(const char *name, const char *x, const char *y, const char* begin, const char* end)noexcept {
-		try {
-			ptrHolder &&fun_x = funEngine::produce(x), &&fun_y = funEngine::produce(y);
-			if (!*x || !*y) {
-				std::cout << "Shape of body \"" << name << "\" is not assigned." << std::endl;
-			}
-			else {
-				if (!fun_x && *x) std::cerr << "Unsupported form of equation \"" << x << "\"." << std::endl;
-				if (!fun_y && *y) std::cerr << "Unsupported form of equation \"" << y << "\"." << std::endl;
-			}
-			emplace_body(name, std::move(fun_x), std::move(fun_y), begin, end);
+	key new_body(const char *name, const char *x, const char *y, const char *begin, const char *end)noexcept {
+		ptrHolder &&fun_x = funEngine::produce(x), &&fun_y = funEngine::produce(y);
+		if (!*x || !*y) {
+			std::cout << "Shape of body \"" << name << "\" is not assigned." << std::endl;
 		}
-		catch (const std::exception & e) {
-			std::cerr << "Exception:\"" << e.what() << "\"" << std::endl;
+		else {
+			if (!fun_x && *x) std::cerr << "Unsupported form of equation \"" << x << "\"." << std::endl;
+			if (!fun_y && *y) std::cerr << "Unsupported form of equation \"" << y << "\"." << std::endl;
 		}
+		return emplace_body(name, std::move(fun_x), std::move(fun_y), begin, end);
+	}
+	auto new_external(key k, const char *fx, const char *fy, const char *t)noexcept {
+		return externals.emplace(k, std::move(external(fx, fy, t)));
 	}
 	void new_constraint(
 		const std::string &a, const std::string &b,
@@ -89,7 +102,7 @@ public:
 				if (ia == bodies.cend()) {
 					constexpr char tmp = '1';
 					_a = emplace_body(a.c_str(), nullptr, nullptr, &tmp, &tmp);
-					std::cerr << "A body named " << a << " has been emplaced autimatically. It has no shape asigned." << std::endl;
+					std::cerr << "A body named " << a << " has been emplaced autimatically. Its shape is not asigned." << std::endl;
 				}
 				else _a = ia - bodies.cbegin();
 			}
@@ -97,7 +110,7 @@ public:
 				auto ib = std::find_if(bodies.cbegin(), bodies.cend(), [&b](auto &_body) { return b == _body; });
 				if (ib == bodies.cend()) {
 					constexpr char tmp = '1';
-					_b = emplace_body(b.c_str(), &tmp, &tmp, nullptr, nullptr, &tmp, &tmp);
+					_b = emplace_body(b.c_str(), nullptr, nullptr, &tmp, &tmp);
 					std::cerr << "A body named " << b << " has been emplaced autimatically. Its shape is not asigned." << std::endl;
 				}
 				else _b = ib - bodies.cbegin();
@@ -122,26 +135,41 @@ public:
 				try {
 					//第(i / 3)个刚体，第(countConstr - j - 1)个约束
 					//Please try Google Translation this time.
-					auto iter = constraints.cbegin();
-					if (j >= countConstr)return constant(true, 0, 1);
-					for (size_t t = 0; t < j; t++) {
-						++iter;
+					if (j >= countConstr) {
+						auto &&ext = externals.find(i / 3);
+						if (ext == externals.cend()) {
+							return constant(true, 0, 1);
+						}
+						else {
+							switch (i % 3) {
+							case 0:
+								return (*ext).second.fx;
+							case 1:
+								return (*ext).second.fy;
+							case 2:
+								return bodies[i / 3].x.getValue((*ext).second.t) * (*ext).second.fy - bodies[i / 3].y.getValue((*ext).second.t) * (*ext).second.fx;
+							default:
+								return constant(true, 0, 1);
+								break;
+							}
+						}
 					}
+					auto cons = constraints[j];
 					//由于a b所受约束力方向相反，需要判断
 					//As the direction of the constrain force to a and b is contrary, a variable should be used.
 					bool is_a = true;
-					if ((i / 3) == (*iter).a || (is_a = false, (i / 3) == (*iter).b)) {
-						if ((*iter).force_or_moment == true) {
+					if ((i / 3) == (cons).a || (is_a = false, (i / 3) == (cons).b)) {
+						if ((cons).force_or_moment == true) {
 							if (i % 3 == 0) {
-								auto &&res = cosd((*iter).direction);
+								auto &&res = cosd(cons.direction);
 								return  (is_a ? res : -res);
 							}
 							else if (i % 3 == 1) {
-								auto &&res = sind((*iter).direction);
+								auto &&res = sind(cons.direction);
 								return  (is_a ? res : -res);
 							}
 							else if (i % 3 == 2) {
-								auto &&res = ((*iter).x * sind((*iter).direction) - (*iter).y * cosd((*iter).direction));
+								auto &&res = (cons.x * sind(cons.direction) - cons.y * cosd(cons.direction));
 								return (is_a ? res : -res);
 							}
 							assert(false);
@@ -211,7 +239,7 @@ bool processInput(std::istream &stin)noexcept {
 		if (words[0] != '/') {
 			joint type = joint::unknown;
 			if (words == "pole") {
-				string name, x, y, begin, end, fx, fy;
+				string name, x, y, begin, end, fx, fy, para;
 
 
 				ignore_if<' '>(stin);
@@ -253,13 +281,14 @@ bool processInput(std::istream &stin)noexcept {
 						break;
 					}
 				}
-
-				t.new_body(
+				auto index = t.new_body(
 					name.c_str(),
-					fx.c_str(), fy.c_str(),
 					x.c_str(), y.c_str(),
 					begin.c_str(), end.c_str()
 				);
+				if (!fx.empty()||!fy.empty()) {
+					t.new_external(index, fx.c_str(), fy.c_str(), para.c_str());
+				}
 			}
 			else if (
 				(type = joint::lever, words == "lever")
