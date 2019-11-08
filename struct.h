@@ -165,11 +165,15 @@ public:
 					throw std::exception("Failed in filling the matrix.");
 				}
 				});
-			std::cout << "Before solving:" << std::endl <<std::setw(5) << constr << std::endl;
-			auto rank = constr.to_diagon();
+			std::cout << "Before solving:" << std::endl << std::setw(5) << constr << std::endl;
+			auto rank = constr.to_diagon(countBody * 3, countConstr);
 			std::cout << "After solving:" << std::endl << std::setw(5) << constr << std::endl;
 			if (rank < countBody * 3) {
-				std::cout << "Variable structure! It has " << countBody * 3 - rank << " free degree." << std::endl;
+				std::cout
+					<< "Mutable structure! It is "
+					<< (constr.no_more_than_one_nonzero_each_line() ? "variable" : "transient")
+					<< " structure. And it has "
+					<< countBody * 3 - rank << " free degree. " << std::endl;
 			}
 			else if (countBody * 3 == countConstr) {
 				std::cout << "Statically determinate structure!" << std::endl;
@@ -177,7 +181,6 @@ public:
 			else {
 				std::cout << "Statically indeterminate structure! Its degree of statical indeterminacy is " << countConstr - countBody * 3 << '.' << std::endl;
 			}
-			
 		}
 		catch (const std::exception & e) {
 			std::cerr
@@ -188,7 +191,7 @@ public:
 private:
 };
 
-bool processInput(std::istream& stin)noexcept {
+bool processInput(std::istream &stin)noexcept {
 	using namespace LargeInteger;
 	using namespace std;
 
@@ -208,22 +211,55 @@ bool processInput(std::istream& stin)noexcept {
 		if (words[0] != '/') {
 			joint type = joint::unknown;
 			if (words == "pole") {
-				string name, x, y, begin, end;
+				string name, x, y, begin, end, fx, fy;
+
+
 				ignore_if<' '>(stin);
 				getline<' ', '\n', '\r'>(stin, name);
 
-				ignore_if_not<'x', '\n', '\r'>(stin);
-				getline<'y', '\n', '\r'>(stin, x);
+				char ch;
+				while (ignore_if<')', ' '>(stin), (ch = static_cast<char>(stin.peek())) != '\n' && ch != '\r') {
+					if (ignore_if_not<'(', '\n', '\r'>(stin) == '(') {
+						stin.ignore();
+					}
 
-				ignore_if_not<'y', '\n', '\r'>(stin);
-				getline<'(', '\n', '\r'>(stin, y);
+					switch (ch) {
+					case 'x':
+					{
+						getline<')', '\n', '\r'>(stin, x);
+						break;
+					}
+					case 'y':
+					{
+						getline<')', '\n', '\r'>(stin, y);
+						break;
+					}
+					case 't':
+					{
+						getline<',', '\n', '\r'>(stin, begin);
+						getline<')', '\n', '\r'>(stin, end);
+						break;
+					}
+					case 'f':
+					{
+						ignore_if_not<'(', '\n', '\r'>(stin);
+						getline<',', '\n', '\r'>(stin, fx);
+						ignore_if<',', ' '>(stin);
+						getline<',', '\n', '\r'>(stin, fy);
 
-				ignore_if<'(', '=', ' ', ','>(stin);
-				getline<',', ' ', '\n', '\r'>(stin, begin);
-				getline<'\n', '\r'>(stin, end);
+						break;
+					}
+					default:
+						break;
+					}
+				}
 
-
-				t.new_body(name.c_str(), x.c_str(), y.c_str(), begin.c_str(), end.c_str());
+				t.new_body(
+					name.c_str(),
+					fx.c_str(), fy.c_str(),
+					x.c_str(), y.c_str(),
+					begin.c_str(), end.c_str()
+				);
 			}
 			else if (
 				(type = joint::lever, words == "lever")
