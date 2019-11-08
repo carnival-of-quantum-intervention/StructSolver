@@ -1,12 +1,12 @@
 /p.24 2-2(a)
-pole a x = t + 1, y = t * 2, (0, 1)
-pole b x = t + 1, y = t ^ 2, (0, 1)
-pole c x = t + 1, y = t * 2, (0, 1)
-pole d x = t + 1, y = t ^ 2, (0, 1)
-pole e x = t + 1, y = t ^ 2, (0, 1)
-pole f x = t + 1, y = t ^ 2, (0, 1)
-pole g x = t + 1, y = t ^ 2, (0, 1)
-pole h x = t + 1, y = t ^ 2, (0, 1)
+pole a x = (t + 1) y = (t * 2) t = (0, 1)
+pole b x = (t + 1) y = (t * 2) t = (0, 1)
+pole c x = (t + 1) y = (t * 2) t = (0, 1)
+pole d x = (t + 1) y = (t * 2) t = (0, 1)
+pole e x = (t + 1) y = (t * 2) t = (0, 1)
+pole f x = (t + 1) y = (t * 2) t = (0, 1)
+pole g x = (t + 1) y = (t * 2) t = (0, 1)
+pole h x = (t + 1) y = (t * 2) t = (0, 1)
 
 pin a base 0 2
 pin b base 0 2
