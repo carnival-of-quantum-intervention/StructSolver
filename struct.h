@@ -8,14 +8,15 @@
 
 using namespace Darkness;
 
+using holder = std::unique_ptr<Expression>;
 class body {
 public:
 	const std::string name;
-	ptrHolder x, y;
+	holder x, y;
 	constant begin, end;
 	body(const std::string &name, nullptr_t &&, nullptr_t &&, const char *begin, const char *end)noexcept
 		:name(name), x(nullptr), y(nullptr), begin(begin), end(end) { }
-	body(const std::string &name, ptrHolder &&x, ptrHolder &&y, const char *begin, const char *end)noexcept
+	body(const std::string &name, holder &&x, holder &&y, const char *begin, const char *end)noexcept
 		:name(name), x(std::move(x)), y(std::move(y)), begin(begin), end(end) { }
 	bool operator==(const std::string &str)const noexcept { return this->name == str; }
 };
@@ -51,6 +52,7 @@ public:
 		:a(a), b(b), x(x), y(y), direction(angle), force_or_moment(force_or_moment) { }
 };
 
+template<std::ostream& err>
 class table {
 	key countBody = 0;
 	key countConstr = 0;
@@ -67,7 +69,7 @@ public:
 	__stdcall table(const table &that) = default;
 
 
-	auto emplace_body(const char *name,  ptrHolder &&fun_x, ptrHolder &&fun_y, const char *begin, const char *end) {
+	auto emplace_body(const char *name, holder &&fun_x, holder &&fun_y, const char *begin, const char *end) {
 		bodies.emplace_back(name, std::move(fun_x), std::move(fun_y), begin, end);
 		return countBody++;
 	}
@@ -77,13 +79,13 @@ public:
 	}
 
 	key new_body(const char *name, const char *x, const char *y, const char *begin, const char *end)noexcept {
-		ptrHolder &&fun_x = funEngine::produce(x), &&fun_y = funEngine::produce(y);
+		auto &&fun_x = funEngine::produce(x), &&fun_y = funEngine::produce(y);
 		if (!*x || !*y) {
-			std::cout << "Shape of body \"" << name << "\" is not assigned." << std::endl;
+			err << "Shape of body \"" << name << "\" is not assigned." << std::endl;
 		}
 		else {
-			if (!fun_x && *x) std::cerr << "Unsupported form of equation \"" << x << "\"." << std::endl;
-			if (!fun_y && *y) std::cerr << "Unsupported form of equation \"" << y << "\"." << std::endl;
+			if (!fun_x && *x) err << "Unsupported form of equation \"" << x << "\"." << std::endl;
+			if (!fun_y && *y) err << "Unsupported form of equation \"" << y << "\"." << std::endl;
 		}
 		return emplace_body(name, std::move(fun_x), std::move(fun_y), begin, end);
 	}
@@ -102,7 +104,7 @@ public:
 				if (ia == bodies.cend()) {
 					constexpr char tmp = '1';
 					_a = emplace_body(a.c_str(), nullptr, nullptr, &tmp, &tmp);
-					std::cerr << "A body named " << a << " has been emplaced autimatically. Its shape is not asigned." << std::endl;
+					err << "A body named " << a << " has been emplaced autimatically. Its shape is not asigned." << std::endl;
 				}
 				else _a = ia - bodies.cbegin();
 			}
@@ -111,7 +113,7 @@ public:
 				if (ib == bodies.cend()) {
 					constexpr char tmp = '1';
 					_b = emplace_body(b.c_str(), nullptr, nullptr, &tmp, &tmp);
-					std::cerr << "A body named " << b << " has been emplaced autimatically. Its shape is not asigned." << std::endl;
+					err << "A body named " << b << " has been emplaced autimatically. Its shape is not asigned." << std::endl;
 				}
 				else _b = ib - bodies.cbegin();
 			}
@@ -123,15 +125,15 @@ public:
 			++countConstr;
 		}
 		catch (const std::exception & e) {
-			std::cerr
+			err
 				<< "Exception:\"" << e.what() << "\"" << std::endl
 				<< std::endl;
 		}
 	}
-	void solve() noexcept {
+	void solve(std::ostream& out, std::ostream& err) noexcept {
 		try {
 			Math::NormalMatrix<constant> constr(countBody * 3, countConstr + 1);
-			constr.fill([this](size_t i, size_t j) ->constant {
+			constr.fill([this, &err](size_t i, size_t j) ->constant {
 				try {
 					//第(i / 3)个刚体，第(countConstr - j - 1)个约束
 					//Please try Google Translation this time.
@@ -147,7 +149,7 @@ public:
 							case 1:
 								return (*ext).second.fy;
 							case 2:
-								return bodies[i / 3].x.getValue((*ext).second.t) * (*ext).second.fy - bodies[i / 3].y.getValue((*ext).second.t) * (*ext).second.fx;
+								return bodies[i / 3].x->getValue((*ext).second.t) * (*ext).second.fy - bodies[i / 3].y->getValue((*ext).second.t) * (*ext).second.fx;
 							default:
 								return constant(true, 0, 1);
 								break;
@@ -185,7 +187,7 @@ public:
 					else return constant(true, 0, 1);
 				}
 				catch (const std::exception & e) {
-					std::cerr
+					err
 						<< "Exception:\"" << e.what() << "\"" << std::endl
 						<< "It occured at (" << i
 						<< ", " << j << ")."
@@ -193,25 +195,25 @@ public:
 					throw std::exception("Failed in filling the matrix.");
 				}
 				});
-			std::cout << "Before solving:" << std::endl << std::setw(5) << constr << std::endl;
+			out << "Before solving:" << std::endl << std::setw(5) << constr << std::endl;
 			auto rank = constr.to_diagon(countBody * 3, countConstr);
-			std::cout << "After solving:" << std::endl << std::setw(5) << constr << std::endl;
+			out << "After solving:" << std::endl << std::setw(5) << constr << std::endl;
 			if (rank < countBody * 3) {
-				std::cout
+				out
 					<< "Mutable structure! It is "
 					<< (constr.no_more_than_one_nonzero_each_line() ? "variable" : "transient")
 					<< " structure. And it has "
 					<< countBody * 3 - rank << " free degree. " << std::endl;
 			}
 			else if (countBody * 3 == countConstr) {
-				std::cout << "Statically determinate structure!" << std::endl;
+				out << "Statically determinate structure!" << std::endl;
 			}
 			else {
-				std::cout << "Statically indeterminate structure! Its degree of statical indeterminacy is " << countConstr - countBody * 3 << '.' << std::endl;
+				out << "Statically indeterminate structure! Its degree of statical indeterminacy is " << countConstr - countBody * 3 << '.' << std::endl;
 			}
 		}
 		catch (const std::exception & e) {
-			std::cerr
+			err
 				<< "Exception:\"" << e.what() << "\"" << std::endl
 				<< std::endl;
 		}
@@ -219,61 +221,61 @@ public:
 private:
 };
 
-bool processInput(std::istream &stin)noexcept {
+template<std::ostream& out, std::ostream& err>
+bool processInput(std::istream &in)noexcept {
 	using namespace LargeInteger;
-	using namespace std;
 
-	table t;
+	table<err> t;
 
-	string words;
+	std::string words;
 	//per loop for per line
 	do {
-		if (!stin)return false;
-		ignore_if<' '>(stin);
-		auto c = getline<' ', '\n', '\r'>(stin, words);
+		if (!in)return false;
+		ignore_if<' '>(in);
+		auto c = getline<' ', '\n', '\r'>(in, words);
 		if (c == '\n' || c == '\r') {
-			ignore_if<'\n', '\r'>(stin);
+			ignore_if<'\n', '\r'>(in);
 			continue;
 		}
 
 		if (words[0] != '/') {
 			joint type = joint::unknown;
 			if (words == "pole") {
-				string name, x, y, begin, end, fx, fy, para;
+				std::string name, x, y, begin, end, fx, fy, para;
 
 
-				ignore_if<' '>(stin);
-				getline<' ', '\n', '\r'>(stin, name);
+				ignore_if<' '>(in);
+				getline<' ', '\n', '\r'>(in, name);
 
 				char ch;
-				while (ignore_if<')', ' '>(stin), (ch = static_cast<char>(stin.peek())) != '\n' && ch != '\r') {
-					if (ignore_if_not<'(', '\n', '\r'>(stin) == '(') {
-						stin.ignore();
+				while (ignore_if<')', ' '>(in), (ch = static_cast<char>(in.peek())) != '\n' && ch != '\r') {
+					if (ignore_if_not<'(', '\n', '\r'>(in) == '(') {
+						in.ignore();
 					}
 
 					switch (ch) {
 					case 'x':
 					{
-						getline<')', '\n', '\r'>(stin, x);
+						getline<')', '\n', '\r'>(in, x);
 						break;
 					}
 					case 'y':
 					{
-						getline<')', '\n', '\r'>(stin, y);
+						getline<')', '\n', '\r'>(in, y);
 						break;
 					}
 					case 't':
 					{
-						getline<',', '\n', '\r'>(stin, begin);
-						getline<')', '\n', '\r'>(stin, end);
+						getline<',', '\n', '\r'>(in, begin);
+						getline<')', '\n', '\r'>(in, end);
 						break;
 					}
 					case 'f':
 					{
-						ignore_if_not<'(', '\n', '\r'>(stin);
-						getline<',', '\n', '\r'>(stin, fx);
-						ignore_if<',', ' '>(stin);
-						getline<',', '\n', '\r'>(stin, fy);
+						ignore_if_not<'(', '\n', '\r'>(in);
+						getline<',', '\n', '\r'>(in, fx);
+						ignore_if<',', ' '>(in);
+						getline<',', '\n', '\r'>(in, fy);
 
 						break;
 					}
@@ -297,21 +299,21 @@ bool processInput(std::istream &stin)noexcept {
 				||
 				(type = joint::rigid, words == "rigid")
 				) {
-				string a, b, x, y;
-				ignore_if<' '>(stin);
-				getline<' ', '\n', '\r'>(stin, a);
-				ignore_if<' '>(stin);
-				getline<' ', '\n', '\r'>(stin, b);
-				ignore_if<' '>(stin);
-				getline<' ', '\n', '\r'>(stin, x);
-				ignore_if<' '>(stin);
-				getline<' ', '\n', '\r'>(stin, y);
+				std::string a, b, x, y;
+				ignore_if<' '>(in);
+				getline<' ', '\n', '\r'>(in, a);
+				ignore_if<' '>(in);
+				getline<' ', '\n', '\r'>(in, b);
+				ignore_if<' '>(in);
+				getline<' ', '\n', '\r'>(in, x);
+				ignore_if<' '>(in);
+				getline<' ', '\n', '\r'>(in, y);
 				switch (type) {
 				case joint::lever:
 				{
-					string angle;
-					ignore_if<' '>(stin);
-					getline<' ', '\n', '\r'>(stin, angle);
+					std::string angle;
+					ignore_if<' '>(in);
+					getline<' ', '\n', '\r'>(in, angle);
 					t.new_constraint(a, b, x, y, atol(angle.c_str()), true);
 				}
 				break;
@@ -330,21 +332,21 @@ bool processInput(std::istream &stin)noexcept {
 				break;
 				case joint::unknown:
 				default:
-					cerr << "Unknown joint type" << endl;
+					err << "Unknown joint type" << std::endl;
 					break;
 				}
 			}
-			else cerr << "Unknown input \"" << words << "\"." << endl;
+			else err << "Unknown input \"" << words << "\"." << std::endl;
 
 
-			string res;
-			ignore_if<' '>(stin);
-			std::getline(stin, res);
-			if (!res.empty()) cerr << "Unused input \"" << res << "\"." << endl;
+			std::string res;
+			ignore_if<' '>(in);
+			std::getline(in, res);
+			if (!res.empty()) err << "Unused input \"" << res << "\"." << std::endl;
 
 		}
-	} while (words.clear(), !stin.eof());
+	} while (words.clear(), !in.eof());
 
-	t.solve();
+	t.solve(out, err);
 	return true;
 }

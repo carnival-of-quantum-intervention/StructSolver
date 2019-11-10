@@ -2,14 +2,14 @@
 pole a x = (t + 1) y = (t * 2) t = (0, 1)
 pole b x = (t + 1) y = (t * 2) t = (0, 1)
 pole c x = (t + 1) y = (t * 2) t = (0, 1)
-pole d x = (t + 1) y = (t * 2) t = (0, 1)
+pole d x = (t + 1) y = (t * 2) t = (0, 1) f(0) = (20, 11)
 pole e x = (t + 1) y = (t * 2) t = (0, 1)
 pole f x = (t + 1) y = (t * 2) t = (0, 1)
 pole g x = (t + 1) y = (t * 2) t = (0, 1)
 pole h x = (t + 1) y = (t * 2) t = (0, 1)
 pole i x = (t + 1) y = (t * 2) t = (0, 1)
 pole j x = (t + 1) y = (t * 2) t = (0, 1)
-pole k x = (t + 1) y = (t * 2) t = (0, 1) f(0) = (20, 11)
+pole k x = (t + 1) y = (t * 2) t = (0, 1)
 
 pin a base 0 0
 rigid a b 0 2

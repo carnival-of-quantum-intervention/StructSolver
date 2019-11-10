@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) noexcept {
 			(void)fin.peek();
 			if (!fin)return cerr << "Error in opening " << argv[i] << '.' << endl, -1;
 
-			if (!processInput(fin)) {
+			if (!processInput<cout, cerr>(fin)) {
 				cerr << "Error in processing " << argv[i] << '.' << endl;
 			}
 			cout << "Closing " << argv[i] << '.' << endl;
