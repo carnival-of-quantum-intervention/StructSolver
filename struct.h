@@ -3,8 +3,8 @@
 #include <vector>
 #include <algorithm>
 #include <map>
-#include "D:\\MyLibrary\DefaultFunction.h"
-#include "D:\\MyLibrary\NormalMatrix.h"
+#include "..\..\MyLibrary\DefaultFunction.h"
+#include "..\..\MyLibrary\NormalMatrix.h"
 
 using namespace Darkness;
 
@@ -52,8 +52,9 @@ public:
 		:a(a), b(b), x(x), y(y), direction(angle), force_or_moment(force_or_moment) { }
 };
 
-template<std::ostream& err>
+
 class table {
+	std::ostream &err;
 	key countBody = 0;
 	key countConstr = 0;
 	//刚体表 rigid bodies map
@@ -65,7 +66,7 @@ class table {
 	std::multimap<key, external> externals;
 public:
 	//const body base = body("base", nullptr, nullptr);
-	__stdcall table() = default;
+	__stdcall table(std::ostream &err)noexcept :err(err) { }
 	__stdcall table(const table &that) = default;
 
 
@@ -100,7 +101,7 @@ public:
 		try {
 			key _a = key(-1), _b = key(-1);
 			if (a != "base") {
-				auto ia = std::find_if(bodies.cbegin(), bodies.cend(), [&a](auto &_body) { return a == _body; });
+				auto ia = std::find_if(bodies.cbegin(), bodies.cend(), [&a](const body &_body)->bool { return _body == a; });
 				if (ia == bodies.cend()) {
 					constexpr char tmp = '1';
 					_a = emplace_body(a.c_str(), nullptr, nullptr, &tmp, &tmp);
@@ -109,7 +110,7 @@ public:
 				else _a = ia - bodies.cbegin();
 			}
 			if (b != "base") {
-				auto ib = std::find_if(bodies.cbegin(), bodies.cend(), [&b](auto &_body) { return b == _body; });
+				auto ib = std::find_if(bodies.cbegin(), bodies.cend(), [&b](const body &_body)->bool { return _body == b; });
 				if (ib == bodies.cend()) {
 					constexpr char tmp = '1';
 					_b = emplace_body(b.c_str(), nullptr, nullptr, &tmp, &tmp);
@@ -124,16 +125,16 @@ public:
 			);
 			++countConstr;
 		}
-		catch (const std::exception & e) {
+		catch (const char* e) {
 			err
-				<< "Exception:\"" << e.what() << "\"" << std::endl
+				<< "Exception:\"" << e << "\"" << std::endl
 				<< std::endl;
 		}
 	}
-	void solve(std::ostream& out, std::ostream& err) noexcept {
+	void solve(std::ostream &out) noexcept {
 		try {
 			Math::NormalMatrix<constant> constr(countBody * 3, countConstr + 1);
-			constr.fill([this, &err](size_t i, size_t j) ->constant {
+			constr.fill([this](size_t i, size_t j) ->constant {
 				try {
 					//第(i / 3)个刚体，第(countConstr - j - 1)个约束
 					//Please try Google Translation this time.
@@ -186,13 +187,13 @@ public:
 					}
 					else return constant(true, 0, 1);
 				}
-				catch (const std::exception & e) {
+				catch (const char* e) {
 					err
-						<< "Exception:\"" << e.what() << "\"" << std::endl
+						<< "Exception:\"" << e << "\"" << std::endl
 						<< "It occured at (" << i
 						<< ", " << j << ")."
 						<< std::endl;
-					throw std::exception("Failed in filling the matrix.");
+					throw "Failed in filling the matrix.";
 				}
 				});
 			out << "Before solving:" << std::endl << std::setw(5) << constr << std::endl;
@@ -212,20 +213,20 @@ public:
 				out << "Statically indeterminate structure! Its degree of statical indeterminacy is " << countConstr - countBody * 3 << '.' << std::endl;
 			}
 		}
-		catch (const std::exception & e) {
+		catch (const char* e) {
 			err
-				<< "Exception:\"" << e.what() << "\"" << std::endl
+				<< "Exception:\"" << e << "\"" << std::endl
 				<< std::endl;
 		}
 	}
 private:
 };
 
-template<std::ostream& out, std::ostream& err>
-bool processInput(std::istream &in)noexcept {
+
+bool processFile(std::istream &in, std::ostream &out, std::ostream &err)noexcept {
 	using namespace LargeInteger;
 
-	table<err> t;
+	table t(err);
 
 	std::string words;
 	//per loop for per line
@@ -347,6 +348,21 @@ bool processInput(std::istream &in)noexcept {
 		}
 	} while (words.clear(), !in.eof());
 
-	t.solve(out, err);
+	t.solve(out);
 	return true;
+}
+
+bool processPathInput(const char *path, std::ostream &out, std::ostream &err)noexcept {
+	out << "Trying to open " << path << '.' << std::endl;
+	std::ifstream fin(path);
+	if (!fin)return err << "Error in opening " << path << '.' << std::endl, false;
+	bool suc = true;
+	if (!processFile(fin, out, err)) {
+		err << "Error in processing " << path << '.' << std::endl;
+		suc = false;
+	}
+	out << "Closing " << path << '.' << std::endl;
+	fin.close();
+	out << "Closed." << std::endl << std::endl << std::endl;
+	return suc;
 }
