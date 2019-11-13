@@ -102,7 +102,7 @@ public:
 				if (ia == bodies.cend()) {
 					constexpr char tmp = '1';
 					_a = emplace_body(a.c_str());
-					err << "A body named " << a << " has been emplaced autimatically. Its shape is not asigned." << std::endl;
+					err << "A body named " << a << " has been emplaced autimatically." << std::endl;
 				}
 				else _a = ia - bodies.cbegin();
 			}
@@ -111,7 +111,7 @@ public:
 				if (ib == bodies.cend()) {
 					constexpr char tmp = '1';
 					_b = emplace_body(b.c_str());
-					err << "A body named " << b << " has been emplaced autimatically. Its shape is not asigned." << std::endl;
+					err << "A body named " << b << " has been emplaced autimatically." << std::endl;
 				}
 				else _b = ib - bodies.cbegin();
 			}
@@ -262,14 +262,21 @@ public:
 	auto new_external(key k, const char *fx, const char *fy, const char *t)noexcept {
 		return externals.emplace(k, std::move(external(fx, fy, t)));
 	}
-	key new_body(const char *name, const char *x, const char *y, const char *begin, const char *end)noexcept {
+	key new_body(const char *name, const char *x, const char *y, const char *begin, const char *end) {
 		auto &&fun_x = funEngine::produce(x), &&fun_y = funEngine::produce(y);
 		if (!*x || !*y) {
 			err << "Shape of body \"" << name << "\" is not assigned." << std::endl;
+			throw "Body shape not assigned.";
 		}
 		else {
-			if (!fun_x && *x) err << "Unsupported form of equation \"" << x << "\"." << std::endl;
-			if (!fun_y && *y) err << "Unsupported form of equation \"" << y << "\"." << std::endl;
+			if (!fun_x && *x) {
+				err << "Unsupported form of equation \"" << x << "\"." << std::endl;
+				throw "Unsupported form of equation.";
+			}
+			if (!fun_y && *y) {
+				err << "Unsupported form of equation \"" << y << "\"." << std::endl;
+				throw "Unsupported form of equation.";
+			}
 		}
 		return emplace_body(name, std::move(fun_x), std::move(fun_y), begin, end);
 	}
@@ -278,26 +285,14 @@ public:
 		const std::string &a, const std::string &b,
 		const std::string &x, const std::string &y,
 		ang angle, bool force_or_moment
-	)noexcept {
+	) {
 		try {
 			key _a = key(-1), _b = key(-1);
 			if (a != "base") {
-				auto ia = std::find_if(bodies.cbegin(), bodies.cend(), [&a](const body &_body)->bool { return _body == a; });
-				if (ia == bodies.cend()) {
-					constexpr char tmp = '1';
-					_a = emplace_body(a.c_str(), nullptr, nullptr, &tmp, &tmp);
-					err << "A body named " << a << " has been emplaced autimatically. Its shape is not asigned." << std::endl;
-				}
-				else _a = ia - bodies.cbegin();
+				throw "Body name not defined(In parameter 1).";
 			}
 			if (b != "base") {
-				auto ib = std::find_if(bodies.cbegin(), bodies.cend(), [&b](const body &_body)->bool { return _body == b; });
-				if (ib == bodies.cend()) {
-					constexpr char tmp = '1';
-					_b = emplace_body(b.c_str(), nullptr, nullptr, &tmp, &tmp);
-					err << "A body named " << b << " has been emplaced autimatically. Its shape is not asigned." << std::endl;
-				}
-				else _b = ib - bodies.cbegin();
+				throw "Body name not defined(In parameter 2).";
 			}
 			constraints.emplace_back(
 				_a, _b,
@@ -310,6 +305,7 @@ public:
 			err
 				<< "Exception:\"" << e << "\"" << std::endl
 				<< std::endl;
+			throw e;
 		}
 	}
 	void solve(std::ostream &out) noexcept {
@@ -527,7 +523,7 @@ bool processFile<Mode::system>(std::istream &in, std::ostream &out, std::ostream
 
 
 template<>
-bool processFile<Mode::structure>(std::istream &in, std::ostream &out, std::ostream &err)noexcept {
+bool processFile<Mode::structure>(std::istream &in, std::ostream &out, std::ostream &err) {
 	using namespace LargeInteger;
 	constexpr auto mode = Mode::structure;
 
@@ -589,13 +585,27 @@ bool processFile<Mode::structure>(std::istream &in, std::ostream &out, std::ostr
 						break;
 					}
 				}
-				auto index = t.new_body(
-					name.c_str(),
-					x.c_str(), y.c_str(),
-					begin.c_str(), end.c_str()
-				);
-				if (!fx.empty()||!fy.empty()) {
-					t.new_external(index, fx.c_str(), fy.c_str(), para.c_str());
+				try {
+					auto index = t.new_body(
+						name.c_str(),
+						x.c_str(), y.c_str(),
+						begin.c_str(), end.c_str()
+					);
+					if (!fx.empty() || !fy.empty()) {
+						t.new_external(index, fx.c_str(), fy.c_str(), para.c_str());
+					}
+				}
+				catch (const char* e) {
+					err << "Exception:\"" << e << "\"" << std::endl
+						<< "Failed in create body." << std::endl
+						<< "Info:\""
+						<< name << "\", \""
+						<< x << "\", \"" << y << "\", \""
+						<< begin << "\", \"" << end << "\", \""
+						<< fx << "\", \"" << fy << "\", \"" 
+						<< para << "\"."
+						<< std::endl;
+					throw "illegal body.";
 				}
 			}
 			else if (
@@ -606,40 +616,49 @@ bool processFile<Mode::structure>(std::istream &in, std::ostream &out, std::ostr
 				(type = joint::rigid, words == "rigid")
 				) {
 				std::string a, b, x, y;
-				ignore_if<' '>(in);
-				getline<' ', '\n', '\r'>(in, a);
-				ignore_if<' '>(in);
-				getline<' ', '\n', '\r'>(in, b);
-				ignore_if<' '>(in);
-				getline<' ', '\n', '\r'>(in, x);
-				ignore_if<' '>(in);
-				getline<' ', '\n', '\r'>(in, y);
-				switch (type) {
-				case joint::lever:
-				{
-					std::string angle;
+				try {
 					ignore_if<' '>(in);
-					getline<' ', '\n', '\r'>(in, angle);
-					t.new_constraint(a, b, x, y, atol(angle.c_str()), true);
-				}
-				break;
-				case joint::pin:
-				{
-					t.new_constraint(a, b, x, y, 0, true);
-					t.new_constraint(a, b, x, y, 90, true);
-				}
-				break;
-				case joint::rigid:
-				{
-					t.new_constraint(a, b, x, y, 0, true);
-					t.new_constraint(a, b, x, y, 90, true);
-					t.new_constraint(a, b, x, y, 90, false);
-				}
-				break;
-				case joint::unknown:
-				default:
-					err << "Unknown joint type" << std::endl;
+					getline<' ', '\n', '\r'>(in, a);
+					ignore_if<' '>(in);
+					getline<' ', '\n', '\r'>(in, b);
+					ignore_if<' '>(in);
+					getline<' ', '\n', '\r'>(in, x);
+					ignore_if<' '>(in);
+					getline<' ', '\n', '\r'>(in, y);
+					switch (type) {
+					case joint::lever:
+					{
+						std::string angle;
+						ignore_if<' '>(in);
+						getline<' ', '\n', '\r'>(in, angle);
+						t.new_constraint(a, b, x, y, atol(angle.c_str()), true);
+					}
 					break;
+					case joint::pin:
+					{
+						t.new_constraint(a, b, x, y, 0, true);
+						t.new_constraint(a, b, x, y, 90, true);
+					}
+					break;
+					case joint::rigid:
+					{
+						t.new_constraint(a, b, x, y, 0, true);
+						t.new_constraint(a, b, x, y, 90, true);
+						t.new_constraint(a, b, x, y, 90, false);
+					}
+					break;
+					case joint::unknown:
+					default:
+						err << "Unknown joint type" << std::endl;
+						break;
+					}
+				}
+				catch (const char *e) {
+					err
+						<< "Exception:\"" << e << "\"" << std::endl
+						<< "Info:" << a << ' ' << b << ' ' << x << ' ' << y << std::endl
+						<< std::endl;
+					throw "illegal constraint.";
 				}
 			}
 			else err << "Unknown input \"" << words << "\"." << std::endl;
@@ -663,9 +682,15 @@ bool processPathInput(const char *path, std::ostream &out, std::ostream &err)noe
 	std::ifstream fin(path);
 	if (!fin)return err << "Error in opening " << path << '.' << std::endl, false;
 	bool suc = true;
-	if (!processFile<mode>(fin, out, err)) {
-		err << "Error in processing " << path << '.' << std::endl;
+	try {
+		suc = processFile<mode>(fin, out, err);
+	}
+	catch (const char* e) {
 		suc = false;
+		err << "Exception:\"" << e << "\"" << std::endl;
+	}
+	if (!suc) {
+		err << "Error in processing " << path << '.' << std::endl;
 	}
 	out << "Closing " << path << '.' << std::endl;
 	fin.close();
