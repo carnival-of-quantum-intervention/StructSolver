@@ -1,0 +1,28 @@
+/p.24 2-2(a)
+pole a
+pole b
+pole c
+pole d
+pole e
+pole f
+pole g
+pole h
+
+pin a base 0 2
+pin b base 0 2
+
+pin b c 1 1
+pin b d 1 1
+
+pin a e 2 2
+pin a f 2 2
+pin a c 2 2
+
+pin d g 2 0
+lever d base 2 0 90
+
+pin f g 3 1
+pin f h 3 1
+
+pin e h 4 2
+lever e base 4 2

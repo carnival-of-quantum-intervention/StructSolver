@@ -25,9 +25,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="test1.struct" />
-    <None Include="test2.struct" />
-    <None Include="test3.struct" />
-    <None Include="test4.struct" />
+    <None Include="test1.system" />
+    <None Include="test2.system" />
+    <None Include="test3.system" />
+    <None Include="test4.system" />
   </ItemGroup>
 </Project>

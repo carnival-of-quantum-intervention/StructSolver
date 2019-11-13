@@ -18,10 +18,19 @@ int main(int argc, char *argv[]) noexcept {
 		return -1;
 	}
 	else {
-
+		Mode mode = Mode::unassigned;
 		//per loop for per file
 		for (int i = 1; i < argc; ++i) {
-			processPathInput(argv[i], cout, cerr);
+			if (*argv[i] == '?') {
+				if (strcmp(argv[i] + 1, "struct") == 0) {
+					mode = Mode::structure;
+				}
+				else if (strcmp(argv[i] + 1, "system") == 0) {
+					mode = Mode::system;
+				}
+				continue;
+			}
+			start(mode, argv[i], cout, cerr);
 		}
 		return 0;
 	}
