@@ -29,5 +29,6 @@
     <None Include="test2.system" />
     <None Include="test3.system" />
     <None Include="test4.system" />
+    <None Include="test5.struct" />
   </ItemGroup>
 </Project>

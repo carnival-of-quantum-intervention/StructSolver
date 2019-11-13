@@ -4,7 +4,7 @@
 #include <forward_list>
 #include <iomanip>
 #include "struct.h"
-#include "..\..\MyLibrary\CustomizedRadixCharSet.h"
+#include "../../MyLibrary/CustomizedRadixCharSet.h"
 
 //Caution:
 //	every constraint should be single.

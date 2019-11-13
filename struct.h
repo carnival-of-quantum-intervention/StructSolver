@@ -3,8 +3,8 @@
 #include <vector>
 #include <algorithm>
 #include <map>
-#include "..\..\MyLibrary\DefaultFunction.h"
-#include "..\..\MyLibrary\NormalMatrix.h"
+#include "../../MyLibrary/DefaultFunction.h"
+#include "../../MyLibrary/NormalMatrix.h"
 
 using namespace Darkness;
 
@@ -26,9 +26,9 @@ public:
 	bool operator==(const std::string &str)const noexcept { return this->name == str; }
 };
 
-using ang = size_t;
-using co = constant;
-using key = size_t;
+using ang = size_t;//angle ½Ç¶È
+using co = constant;//coordination ×ø±ê
+using key = size_t;//¼üÖµ
 
 
 enum class joint {
@@ -75,8 +75,8 @@ class table<Mode::system> {
 	std::multimap<key, external> externals;
 public:
 	//const body base = body("base", nullptr, nullptr);
-	__stdcall table(std::ostream &err)noexcept :err(err) { }
-	__stdcall table(const table &that) = default;
+	MY_LIB table(std::ostream &err)noexcept :err(err) { }
+	MY_LIB table(const table &that) = default;
 
 
 	auto emplace_body(const char *name) {
@@ -247,8 +247,8 @@ class table<Mode::structure> {
 	std::multimap<key, external> externals;
 public:
 	//const body base = body("base", nullptr, nullptr);
-	__stdcall table(std::ostream &err)noexcept :err(err) { }
-	__stdcall table(const table &that) = default;
+	MY_LIB table(std::ostream &err)noexcept :err(err) { }
+	MY_LIB table(const table &that) = default;
 
 
 	auto emplace_body(const char *name, holder &&fun_x, holder &&fun_y, const char *begin, const char *end) {
@@ -289,10 +289,18 @@ public:
 		try {
 			key _a = key(-1), _b = key(-1);
 			if (a != "base") {
-				throw "Body name not defined(In parameter 1).";
+				auto ia = std::find_if(bodies.cbegin(), bodies.cend(), [&a](const body &_body)->bool { return _body == a; });
+				if (ia == bodies.cend()) {
+					throw "Body name not defined(In parameter 1).";
+				}
+				else _a = ia - bodies.cbegin();
 			}
 			if (b != "base") {
-				throw "Body name not defined(In parameter 2).";
+				auto ib = std::find_if(bodies.cbegin(), bodies.cend(), [&b](const body &_body)->bool { return _body == b; });
+				if (ib == bodies.cend()) {
+					throw "Body name not defined(In parameter 2).";
+				}
+				else _b = ib - bodies.cbegin();
 			}
 			constraints.emplace_back(
 				_a, _b,
@@ -378,10 +386,11 @@ public:
 			out << "After solving:" << std::endl << std::setw(5) << constr << std::endl;
 			if (rank < countBody * 3) {
 				out
-					<< "Mutable structure! It is "
+					<< "Mutable system! It is "
 					<< (constr.no_more_than_one_nonzero_each_line() ? "variable" : "transient")
-					<< " structure. And it has "
+					<< " system. And it has "
 					<< countBody * 3 - rank << " free degree. " << std::endl;
+				return;
 			}
 			else if (countBody * 3 == countConstr) {
 				out << "Statically determinate structure!" << std::endl;
@@ -399,12 +408,7 @@ public:
 private:
 };
 
-
-template<Mode mode>
-bool processFile(std::istream &in, std::ostream &out, std::ostream &err)noexcept;
-
-template<>
-bool processFile<Mode::system>(std::istream &in, std::ostream &out, std::ostream &err)noexcept {
+bool processSystem(std::istream &in, std::ostream &out, std::ostream &err)noexcept {
 	using namespace LargeInteger;
 	constexpr auto mode = Mode::system;
 
@@ -522,8 +526,8 @@ bool processFile<Mode::system>(std::istream &in, std::ostream &out, std::ostream
 }
 
 
-template<>
-bool processFile<Mode::structure>(std::istream &in, std::ostream &out, std::ostream &err) {
+
+bool processStructure(std::istream &in, std::ostream &out, std::ostream &err) {
 	using namespace LargeInteger;
 	constexpr auto mode = Mode::structure;
 
@@ -542,7 +546,7 @@ bool processFile<Mode::structure>(std::istream &in, std::ostream &out, std::ostr
 
 		if (words[0] != '/') {
 			joint type = joint::unknown;
-			if (words == "pole") {
+			if (words == "straight") {
 				std::string name, x, y, begin, end, fx, fy, para;
 
 
@@ -550,7 +554,7 @@ bool processFile<Mode::structure>(std::istream &in, std::ostream &out, std::ostr
 				getline<' ', '\n', '\r'>(in, name);
 
 				char ch;
-				while (ignore_if<')', ' '>(in), (ch = static_cast<char>(in.peek())) != '\n' && ch != '\r') {
+				while (in && (ignore_if<')', ' '>(in), (ch = static_cast<char>(in.peek())) != '\n' && ch != '\r')) {
 					if (ignore_if_not<'(', '\n', '\r'>(in) == '(') {
 						in.ignore();
 					}
@@ -582,6 +586,74 @@ bool processFile<Mode::structure>(std::istream &in, std::ostream &out, std::ostr
 						break;
 					}
 					default:
+						in.get();
+						break;
+					}
+				}
+				try {
+					auto index = t.new_body(
+						name.c_str(),
+						x.c_str(), y.c_str(),
+						begin.c_str(), end.c_str()
+					);
+					if (!fx.empty() || !fy.empty()) {
+						t.new_external(index, fx.c_str(), fy.c_str(), para.c_str());
+					}
+				}
+				catch (const char *e) {
+					err << "Exception:\"" << e << "\"" << std::endl
+						<< "Failed in create body." << std::endl
+						<< "Info:\""
+						<< name << "\", \""
+						<< x << "\", \"" << y << "\", \""
+						<< begin << "\", \"" << end << "\", \""
+						<< fx << "\", \"" << fy << "\", \""
+						<< para << "\"."
+						<< std::endl;
+					throw "illegal body.";
+				}
+			}
+			else if (words == "pole") {
+				std::string name, x, y, begin, end, fx, fy, para;
+
+
+				ignore_if<' '>(in);
+				getline<' ', '\n', '\r'>(in, name);
+
+				char ch;
+				while (in && (ignore_if<')', ' '>(in), (ch = static_cast<char>(in.peek())) != '\n' && ch != '\r')) {
+					if (ignore_if_not<'(', '\n', '\r'>(in) == '(') {
+						in.ignore();
+					}
+
+					switch (ch) {
+					case 'x':
+					{
+						getline<')', '\n', '\r'>(in, x);
+						break;
+					}
+					case 'y':
+					{
+						getline<')', '\n', '\r'>(in, y);
+						break;
+					}
+					case 't':
+					{
+						getline<',', '\n', '\r'>(in, begin);
+						getline<')', '\n', '\r'>(in, end);
+						break;
+					}
+					case 'f':
+					{
+						ignore_if_not<'(', '\n', '\r'>(in);
+						getline<',', '\n', '\r'>(in, fx);
+						ignore_if<',', ' '>(in);
+						getline<',', '\n', '\r'>(in, fy);
+
+						break;
+					}
+					default:
+						in.get();
 						break;
 					}
 				}
@@ -683,7 +755,18 @@ bool processPathInput(const char *path, std::ostream &out, std::ostream &err)noe
 	if (!fin)return err << "Error in opening " << path << '.' << std::endl, false;
 	bool suc = true;
 	try {
-		suc = processFile<mode>(fin, out, err);
+		switch (mode) {
+		case Mode::system:
+			suc = processSystem(fin, out, err);
+			break;
+		case Mode::structure:
+			suc = processStructure(fin, out, err);
+			break;
+		case Mode::unassigned:
+		default:
+			suc = false;
+			break;
+		}
 	}
 	catch (const char* e) {
 		suc = false;

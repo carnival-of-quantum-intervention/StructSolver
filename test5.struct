@@ -1,0 +1,21 @@
+/p.82 3-16(e)
+pole a x = (0) y = (t) t = (0, 6) f(6) = (8, 0)
+pole b x = (8) y = (t) t = (0, 6)
+pole c x = (4 * t / 5) y = (3 * t / 5) t = (0, 5)
+pole d x = (8 - 4 * t / 5) y = (3 * t / 5) t = (0, 5)
+pole e x = (4 * t / 5) y = (6 + 3 * t / 5) t = (0, 5)
+pole f x = (8 - 4 * t / 5) y = (6 + 3 * t / 5) t = (0, 5) q(0, 5) = (0, -8)
+
+pin a base 0 0
+lever b base 8 0 90
+
+pin a c 0 3
+pin b d 8 3
+
+pin c d 4 0
+lever c base 4 0 90
+
+rigid a e 0 6
+rigid b f 8 6
+
+pin e f 4 9

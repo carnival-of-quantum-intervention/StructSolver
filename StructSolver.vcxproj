@@ -139,6 +139,7 @@
     </None>
     <None Include="test3.system" />
     <None Include="test4.system" />
+    <None Include="test5.struct" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
