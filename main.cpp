@@ -1,10 +1,11 @@
-#include <iostream>
-#include <fstream>
 #include <string>
 #include <forward_list>
 #include <iomanip>
-#include "struct.h"
+#include "main.h"
 #include "../../MyLibrary/CustomizedRadixCharSet.h"
+
+template<Mode mode> bool processPathInput(const char *path, std::ostream &out, std::ostream &err)noexcept;
+bool start(Mode mode, const char *path, std::ostream &out, std::ostream &err)noexcept;
 
 //Caution:
 //	every constraint should be single.
@@ -34,4 +35,71 @@ int main(int argc, char *argv[]) noexcept {
 		}
 		return 0;
 	}
+}
+
+
+template<Mode mode>
+bool processPathInput(const char *path, std::ostream &out, std::ostream &err)noexcept {
+	out << "Trying to open " << path << '.' << std::endl;
+	std::ifstream fin(path);
+	if (!fin)return err << "Error in opening " << path << '.' << std::endl, false;
+	bool suc = true;
+	try {
+		switch (mode) {
+		case Mode::system:
+			suc = processSystem(fin, out, err);
+			break;
+		case Mode::structure:
+			suc = processStructure(fin, out, err);
+			break;
+		case Mode::unassigned:
+		default:
+			suc = false;
+			break;
+		}
+	}
+	catch (const char *e) {
+		suc = false;
+		err << "Exception:\"" << e << "\"" << std::endl;
+	}
+	if (!suc) {
+		err << "Error in processing " << path << '.' << std::endl;
+	}
+	out << "Closing " << path << '.' << std::endl;
+	fin.close();
+	out << "Closed." << std::endl << std::endl << std::endl;
+	return suc;
+}
+
+bool start(Mode mode, const char *path, std::ostream &out, std::ostream &err)noexcept {
+	bool ret;
+	switch (mode) {
+	case Mode::system:
+		ret = processPathInput<Mode::system>(path, out, err);
+		break;
+	case Mode::structure:
+		ret = processPathInput<Mode::structure>(path, out, err);
+		break;
+	case Mode::unassigned:
+	default:
+		const char *begin = nullptr, *p = path;
+		for (; *p != '\0'; p++) {
+			if (*p == '.') begin = p;
+		}
+		if (begin) {
+			if (strcmp(begin, ".struct") == 0) {
+				ret = processPathInput<Mode::structure>(path, out, err);
+				break;
+			}
+			else if (strcmp(begin, ".system") == 0) {
+				ret = processPathInput<Mode::system>(path, out, err);
+				break;
+			}
+		}
+		//If not assigned, use system mode.
+		//如果未指定，使用体系模式
+		ret = processPathInput<Mode::system>(path, out, err);
+		break;
+	}
+	return ret;
 }
