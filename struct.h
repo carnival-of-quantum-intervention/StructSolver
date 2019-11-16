@@ -14,17 +14,6 @@ enum class Mode {
 	unassigned, system, structure
 };
 
-class body {
-public:
-	const std::string name;
-	holder x, y;
-	constant begin, end;
-	body(const std::string &name, nullptr_t &&, nullptr_t &&, const char *begin, const char *end)noexcept
-		:name(name), x(nullptr), y(nullptr), begin(begin), end(end) { }
-	body(const std::string &name, holder &&x, holder &&y, const char *begin, const char *end)noexcept
-		:name(name), x(std::move(x)), y(std::move(y)), begin(begin), end(end) { }
-	bool operator==(const std::string &str)const noexcept { return this->name == str; }
-};
 
 using ang = size_t;//angle ½Ç¶È
 using co = constant;//coordination ×ø±ê
@@ -78,16 +67,12 @@ public:
 	MY_LIB table(std::ostream &err)noexcept :err(err) { }
 	MY_LIB table(const table &that) = default;
 
-
-	auto emplace_body(const char *name) {
-		bodies.emplace_back(name);
-		return countBody++;
-	}
 	auto new_external(key k, const char *fx, const char *fy, const char *x, const char *y)noexcept {
 		return externals.emplace(k, std::move(external(fx, fy, x, y)));
 	}
 	key new_body(const char *name)noexcept {
-		return emplace_body(name);
+		bodies.emplace_back(name);
+		return countBody++;
 	}
 
 	void new_constraint(
@@ -101,7 +86,7 @@ public:
 				auto ia = std::find_if(bodies.cbegin(), bodies.cend(), [&a](const std::string &_body)->bool { return _body == a; });
 				if (ia == bodies.cend()) {
 					constexpr char tmp = '1';
-					_a = emplace_body(a.c_str());
+					_a = new_body(a.c_str());
 					err << "A body named " << a << " has been emplaced autimatically." << std::endl;
 				}
 				else _a = ia - bodies.cbegin();
@@ -110,7 +95,7 @@ public:
 				auto ib = std::find_if(bodies.cbegin(), bodies.cend(), [&b](const std::string &_body)->bool { return _body == b; });
 				if (ib == bodies.cend()) {
 					constexpr char tmp = '1';
-					_b = emplace_body(b.c_str());
+					_b = new_body(b.c_str());
 					err << "A body named " << b << " has been emplaced autimatically." << std::endl;
 				}
 				else _b = ib - bodies.cbegin();
@@ -221,6 +206,17 @@ private:
 
 template<>
 class table<Mode::structure> {
+	class body {
+	public:
+		const std::string name;
+		holder x, y;
+		constant begin, end;
+		body(const std::string &name, nullptr_t &&, nullptr_t &&, const char *begin, const char *end)noexcept
+			:name(name), x(nullptr), y(nullptr), begin(begin), end(end) { }
+		body(const std::string &name, holder &&x, holder &&y, const char *begin, const char *end)noexcept
+			:name(name), x(std::move(x)), y(std::move(y)), begin(begin), end(end) { }
+		bool operator==(const std::string &str)const noexcept { return this->name == str; }
+	};
 	class external {
 	public:
 		constant t;
