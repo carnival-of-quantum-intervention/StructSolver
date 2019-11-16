@@ -263,20 +263,26 @@ public:
 		return externals.emplace(k, std::move(external(fx, fy, t)));
 	}
 	key new_body(const char *name, const char *x, const char *y, const char *begin, const char *end) {
-		auto &&fun_x = funEngine::produce(x), &&fun_y = funEngine::produce(y);
+		holder fun_x, fun_y;
 		if (!*x || !*y) {
 			err << "Shape of body \"" << name << "\" is not assigned." << std::endl;
 			throw "Body shape not assigned.";
 		}
-		else {
-			if (!fun_x && *x) {
-				err << "Unsupported form of equation \"" << x << "\"." << std::endl;
-				throw "Unsupported form of equation.";
-			}
-			if (!fun_y && *y) {
-				err << "Unsupported form of equation \"" << y << "\"." << std::endl;
-				throw "Unsupported form of equation.";
-			}
+		try {
+			fun_x = funEngine::produce(x);
+		}
+		catch (const char *e) {
+			err << "Exception:\"" << e << "\"" << std::endl << std::endl
+				<< "Unsupported form of equation \"" << x << "\"." << std::endl;
+			throw "Unsupported form of equation(In parameter 1).";
+		}
+		try {
+			fun_y = funEngine::produce(y);
+		}
+		catch (const char *e) {
+			err << "Exception:\"" << e << "\"" << std::endl << std::endl
+				<< "Unsupported form of equation \"" << y << "\"." << std::endl;
+			throw "Unsupported form of equation(In parameter 2).";
 		}
 		return emplace_body(name, std::move(fun_x), std::move(fun_y), begin, end);
 	}
@@ -319,28 +325,26 @@ public:
 	void solve(std::ostream &out) noexcept {
 		try {
 			Math::NormalMatrix<constant> constr(countBody * 3, countConstr + 1);
-			constr.fill([this](size_t i, size_t j) ->constant {
+			constr.fill([this](const size_t &i, const size_t &j) ->constant {
 				try {
 					//第(i / 3)个刚体，第(countConstr - j - 1)个约束
 					//Please try Google Translation this time.
 					if (j >= countConstr) {
-						auto &&ext = externals.find(i / 3);
-						if (ext == externals.cend()) {
-							return constant(true, 0, 1);
-						}
-						else {
+						auto &&exts = externals.equal_range(i / 3);
+						constant res;
+						for (auto ext = exts.first; ext != exts.second; ++ext) {
 							switch (i % 3) {
 							case 0:
-								return (*ext).second.fx;
+								res += (*ext).second.fx;
 							case 1:
-								return (*ext).second.fy;
+								res += (*ext).second.fy;
 							case 2:
-								return bodies[i / 3].x->getValue((*ext).second.t) * (*ext).second.fy - bodies[i / 3].y->getValue((*ext).second.t) * (*ext).second.fx;
+								res += bodies[i / 3].x->getValue((*ext).second.t) * (*ext).second.fy - bodies[i / 3].y->getValue((*ext).second.t) * (*ext).second.fx;
 							default:
-								return constant(true, 0, 1);
 								break;
 							}
 						}
+						return res;
 					}
 					auto cons = constraints[j];
 					//由于a b所受约束力方向相反，需要判断
