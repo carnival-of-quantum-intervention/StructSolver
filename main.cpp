@@ -47,10 +47,10 @@ bool processPathInput(const char *path, std::ostream &out, std::ostream &err)noe
 	try {
 		switch (mode) {
 		case Mode::system:
-			suc = processSystem(fin, out, err);
+			suc = table<Mode::system>::process(fin, out, err);
 			break;
 		case Mode::structure:
-			suc = processStructure(fin, out, err);
+			suc = table<Mode::structure>::process(fin, out, err);
 			break;
 		case Mode::unassigned:
 		default:
