@@ -2,6 +2,8 @@
 #include <forward_list>
 #include <iomanip>
 #include "main.h"
+#include "Structure.h"
+#include "System.h"
 #include "../../MyLibrary/CustomizedRadixCharSet.h"
 
 template<Mode mode> bool processPathInput(const char *path, std::ostream &out, std::ostream &err)noexcept;
@@ -47,10 +49,10 @@ bool processPathInput(const char *path, std::ostream &out, std::ostream &err)noe
 	try {
 		switch (mode) {
 		case Mode::system:
-			suc = table<Mode::system>::process(fin, out, err);
+			suc = tableSystem::process(fin, out, err);
 			break;
 		case Mode::structure:
-			suc = table<Mode::structure>::process(fin, out, err);
+			suc = tableStructure::process(fin, out, err);
 			break;
 		case Mode::unassigned:
 		default:
