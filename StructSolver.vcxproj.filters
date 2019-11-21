@@ -18,6 +18,12 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Structure.h">
+      <Filter>头文件</Filter>
+    </ClCompile>
+    <ClCompile Include="System.h">
+      <Filter>头文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="test1.system" />
