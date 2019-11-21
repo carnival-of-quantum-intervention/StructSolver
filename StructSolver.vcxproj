@@ -128,8 +128,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Structure.h" />
-    <ClCompile Include="System.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h" />
