@@ -27,21 +27,45 @@ enum class joint {
 	unknown = -1, lever, pin, rigid
 };
 
-class tableName {
+class ref_ostream {
 public:
-	tableName(std::ostream &err)noexcept :err(err) { }
-	~tableName() noexcept = default;
 	std::ostream &err;
+	ref_ostream(std::ostream &e) noexcept:err(e){ }
+	~ref_ostream() noexcept = default;
+
+private:
+
+};
+
+
+class tableName :public ref_ostream{
+public:
+	tableName(std::ostream &err)noexcept :ref_ostream(err) { }
+	~tableName() noexcept = default;
 	auto cbegin()const noexcept { return bodies.cbegin(); }
 	auto cend()const noexcept { return bodies.cend(); }
-	template<typename... T>size_t new_name(const char* name)noexcept {
+	size_t find_name(const char *name)noexcept {
 		for (auto iter = bodies.cbegin(); iter != bodies.cend(); ++iter) {
 			if (*iter == name) {
 				return iter - bodies.cbegin();
 			}
 		}
-		bodies.emplace_back(name);
-		return bodies.size() - 1;
+		return std::numeric_limits<size_t>::max();
+	}
+	size_t new_name(const char* name)noexcept {
+		for (auto iter = bodies.cbegin(); iter != bodies.cend(); ++iter) {
+			if (*iter == name) {
+				return std::numeric_limits<size_t>::max();
+			}
+		}
+		try {
+			bodies.emplace_back(name);
+			return bodies.size() - 1;
+		}
+		catch (const std::exception &) {
+			err << "Failed in emplacing." << std::endl;
+			return std::numeric_limits<size_t>::max();
+		}
 	}
 	auto size()const noexcept { return bodies.size(); }
 	const auto &operator[](size_t i)const noexcept {
@@ -59,7 +83,7 @@ public:
 	tableExternal() = default;
 	~tableExternal()noexcept = default;
 	template<typename... T>void new_external(key k, T &&... t)noexcept {
-		externals.emplace(k, std::move(t)...);
+		externals.emplace(std::move(k), std::move(external(t...)));
 	}
 	auto equal_range(key k)noexcept {
 		return externals.equal_range(k);

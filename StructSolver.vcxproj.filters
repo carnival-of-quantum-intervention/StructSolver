@@ -21,9 +21,6 @@
     <ClCompile Include="Structure.h">
       <Filter>头文件</Filter>
     </ClCompile>
-    <ClCompile Include="System.h">
-      <Filter>头文件</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="test1.system" />
@@ -34,6 +31,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="System.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,3 +1,4 @@
+#pragma once
 #include "main.h"
 
 inline namespace System {
@@ -19,7 +20,7 @@ inline namespace System {
 		co x, y;
 		bool force_or_moment;
 		ang direction;
-		constraint(const char* x, const char *y, ang angle, bool force_or_moment)noexcept
+		constraint(const char *x, const char *y, ang angle, bool force_or_moment)noexcept
 			:x(x), y(y), direction(angle), force_or_moment(force_or_moment) { }
 	};
 
@@ -112,7 +113,7 @@ inline namespace System {
 						throw "Failed in filling the matrix.";
 					}
 					});
-				out << "Before solving:" << std::endl << std::setw(5) << constr << std::endl;
+				out << "Before solving:" << std::endl << std::setw(6) << constr << std::endl;
 				auto rank = constr.to_diagon(names::size() * 3, constraints::size());
 				out << "After solving:" << std::endl << std::setw(5) << constr << std::endl;
 				if (rank < names::size() * 3) {
@@ -161,7 +162,7 @@ inline namespace System {
 						getline<' ', '\n', '\r'>(in, name);
 						auto key = t.new_name(name.c_str());
 						while (!BaseSet<char, char, '\n', '\r'>::exist(ignore_if < ' ' >(in))) {
-							if (in.peek()=='f') {
+							if (in.peek() == 'f') {
 								std::string x, y, fx, fy;
 								ignore_if<' ', 'f', '('>(in);
 								getline<',', '\n', '\r'>(in, x);
@@ -171,6 +172,7 @@ inline namespace System {
 								getline<')', '\n', '\r'>(in, fy);
 								t.externals::new_external(key, fx.c_str(), fy.c_str(), x.c_str(), y.c_str());
 							}
+							else break;
 						}
 					}
 					else if (

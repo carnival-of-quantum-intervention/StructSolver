@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) noexcept {
 
 
 template<Mode mode>
-bool processPathInput(const char *path, std::ostream &out, std::ostream &err)noexcept {
+bool processPathInput(const char *const path, std::ostream &out, std::ostream &err)noexcept {
 	out << "Trying to open " << path << '.' << std::endl;
 	std::ifstream fin(path);
 	if (!fin)return err << "Error in opening " << path << '.' << std::endl, false;

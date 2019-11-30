@@ -129,10 +129,10 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Structure.h" />
-    <ClCompile Include="System.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h" />
+    <ClInclude Include="System.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="test1.system" />

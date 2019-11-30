@@ -1,3 +1,4 @@
+#pragma once
 #include "main.h"
 
 inline namespace Structure {
@@ -23,11 +24,11 @@ inline namespace Structure {
 		co t1, t2;
 		bool force_or_moment;
 		ang direction;
-		constraint(const char* t1,const char* t2, ang angle, bool force_or_moment)noexcept
+		constraint(const char *t1, const char *t2, ang angle, bool force_or_moment)noexcept
 			:t1(t1), t2(t2), direction(angle), force_or_moment(force_or_moment) { }
 	};
 
-	class tableStructure :protected tableName, tableExternal<external>, tableConstraint<constraint>, tableShape<body> {
+	class tableStructure : protected tableName, tableExternal<external>, tableConstraint<constraint>, tableShape<body> {
 		using names = tableName;
 		using externals = tableExternal<external>;
 		using constraints = tableConstraint<constraint>;
@@ -37,9 +38,6 @@ inline namespace Structure {
 		tableStructure(std::ostream &err)noexcept :names(err) { }
 		tableStructure(const tableStructure &that) = default;
 
-		auto new_external(key k, const char *fx, const char *fy, const char *t)noexcept {
-			return externals::new_external(k, std::move(external(fx, fy, t)));
-		}
 		key new_body(const char *name, const char *x, const char *y, const char *begin, const char *end) {
 			holder fun_x, fun_y;
 			if (!*x || !*y) {
@@ -70,6 +68,7 @@ inline namespace Structure {
 			else {
 				err << "Repeated name!" << std::endl;
 			}
+			return key;
 		}
 
 		void new_constraint(
@@ -109,57 +108,70 @@ inline namespace Structure {
 		void solve(std::ostream &out) noexcept {
 			try {
 				Math::NormalMatrix<constant> constr(names::size() * 3, constraints::size() + 1);
-				constr.fill([this](const size_t &i, const size_t &j) ->constant {
+				constr.fill([this](const size_t &i, const size_t &j) ->constant const{
 					try {
 						//第(i / 3)个刚体，第(countConstr - j - 1)个约束
 						//Please try Google Translation this time.
+						const size_t &&iBody = i / 3;
+						const size_t &&iEqua = i % 3;
 						if (j >= constraints::size()) {
-							auto &&exts = externals::equal_range(i / 3);
+							assert(j == constraints::size());
+							auto &&exts = externals::equal_range(iBody);
 							constant res;
 							for (auto ext = exts.first; ext != exts.second; ++ext) {
-								switch (i % 3) {
-								case 0:
-									res += (*ext).second.fx;
-								case 1:
-									res += (*ext).second.fy;
-								case 2:
-									res += this->shapes::operator[](i / 3).x->getValue((*ext).second.t) * (*ext).second.fy - this->shapes::operator[](i / 3).y->getValue((*ext).second.t) * (*ext).second.fx;
-								default:
-									break;
+								if ((*ext).first == iBody) {
+									switch (iEqua) {
+									case 0:
+										res += (*ext).second.fx;
+									case 1:
+										res += (*ext).second.fy;
+									case 2:
+										res += this->shapes::operator[](iBody).x->getValue((*ext).second.t) * (*ext).second.fy - this->shapes::operator[](iBody).y->getValue((*ext).second.t) * (*ext).second.fx;
+									default:
+										break;
+									}
 								}
 							}
 							return res;
 						}
-						auto cons = this->constraints::operator[](j);
-						//由于a b所受约束力方向相反，需要判断
-						//As the direction of the constrain force to a and b is contrary, a variable should be used.
-						bool is_a = true;
-						if ((i / 3) == (cons).a || (is_a = false, (i / 3) == (cons).b)) {
-							if ((cons).data.force_or_moment == true) {
-								const auto &t = (is_a) ? cons.a : cons.b;
-								if (i % 3 == 0) {
-									auto &&res = cosd(cons.data.direction);
-									return  (is_a ? res : -res);
+						else {
+							const auto &cons = this->constraints::operator[](j);
+							//由于a b所受约束力方向相反，需要判断
+							//As the direction of the constrain force to a and b is contrary, a variable should be used.
+							bool is_a = true;
+							if ((iBody) == (cons).a || (is_a = false, iBody == (cons).b)) {
+								if ((cons).data.force_or_moment == true) {
+									const auto &t = (is_a) ? cons.a : cons.b;
+									switch (iEqua) {
+									case 0:
+									{
+										auto &&res = cosd(cons.data.direction);
+										return  (is_a ? res : -res);
+									}
+									case 1:
+									{
+										auto &&res = sind(cons.data.direction);
+										return  (is_a ? res : -res);
+									}
+									case 2:
+									{
+										auto &&res = (this->shapes::operator[](iBody).x->getValue(t) * sind(cons.data.direction) - this->shapes::operator[](iBody).y->getValue(t) * cosd(cons.data.direction));
+										return (is_a ? res : -res);
+									}
+									default:
+										assert(false);
+										return constant(true, 0, 0);
+									}
 								}
-								else if (i % 3 == 1) {
-									auto &&res = sind(cons.data.direction);
-									return  (is_a ? res : -res);
+								else {
+									if (iEqua == 2) {
+										return constant(is_a, 1, 1);
+									}
+									else return constant(true, 0, 1);
 								}
-								else if (i % 3 == 2) {
-									auto &&res = (this->shapes::operator[](j).x->getValue(t) * sind(cons.data.direction) - this->shapes::operator[](j).y->getValue(t) * cosd(cons.data.direction));
-									return (is_a ? res : -res);
-								}
-								assert(false);
-								return constant(true, 0, 0);
 							}
-							else {
-								if (i % 3 == 2) {
-									return constant(is_a, 1, 1);
-								}
-								else return constant(true, 0, 1);
-							}
+							else return constant(true, 0, 0);
 						}
-						else return constant(true, 0, 1);
 					}
 					catch (const char *e) {
 						err
@@ -170,7 +182,7 @@ inline namespace Structure {
 						throw "Failed in filling the matrix.";
 					}
 					});
-				out << "Before solving:" << std::endl << std::setw(5) << constr << std::endl;
+				out << "Before solving:" << std::endl << std::setw(6) << constr << std::endl;
 				auto rank = constr.to_diagon(names::size() * 3, constraints::size());
 				out << "After solving:" << std::endl << std::setw(5) << constr << std::endl;
 				if (rank < names::size() * 3) {
